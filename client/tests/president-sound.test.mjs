@@ -9,7 +9,7 @@ const read=p=>readFileSync(resolve(root,p),'utf8');
 const base={stage:'play',handNumber:1,handRanks:[],previousRanks:[],seats:[],activeDecrees:[],presidencies:{},longestStreak:{},names:{},decreeActionsRemaining:0,handStats:{},playerStats:{}};
 const cues=(game,role,playerId,now=10000,turnSeconds=30)=>presidentSoundCues({game:{...base,...game},role,playerId,now,offset:0,turnSeconds});
 const kinds=items=>items.map(x=>x.kind);
-test('card, Social cheering, and whoosh are presenter-only',()=>{
+test('host plays card, Social cheering, and clear cues once per event',()=>{
  const game={lastPlayed:{serial:1,at:9000,by:'p1'},lastClear:{serial:2,at:9050,by:'p1',reason:'Social',cards:['7C']}};
  assert.deepEqual(kinds(cues(game,'host','host')),['card','social','clear']);
  assert.deepEqual(kinds(cues(game,'player','p1')),[]);
@@ -47,13 +47,15 @@ test('presenter countdown belongs to the active player seat and follows server d
  assert.match(css,/\.pa-seat-timer\.is-low/);
  assert.match(css,/prefers-reduced-motion:reduce/);
 });
-test('audio is user-controllable and generated locally rather than fetched',()=>{
+test('audio is user-controllable and Socials use licensed cheers with a local fallback',()=>{
  const audio=read('client/src/presidentAudio.ts'),ui=read('client/src/PresidentAsshole.tsx');
  assert.match(audio,/new AudioContext\(\)/);
  assert.match(audio,/localStorage\.setItem/);
  assert.match(ui,/sounds\.toggle/);
  const synthesized=audio.split('export function usePresidentMusic')[0];
- assert.doesNotMatch(synthesized,/\.ogg|\.mp3|https:\/\//);
+ assert.match(synthesized,/sfxmint\.com\/dl\/tavern-ambience-05\.mp3/);
+ assert.match(synthesized,/media\.play\(\)\.catch/);
+ assert.match(synthesized,/playSound\(context\.current,'social',output\.current\)/);
  assert.match(audio,/\/audio\/music\//);
 });
 
@@ -62,4 +64,14 @@ test('finishing Social cheers/clears and glass clink survive transition into Rea
  assert.deepEqual(kinds(cues(social,'host','host',10000)),['social','clear']);
  assert.deepEqual(kinds(cues(social,'player','p3',10000)),['drink']);
  assert.deepEqual(kinds(cues(social,'player','p3',13000)),[]);
+});
+
+test('all players hear a Social without duplicating a same-timestamp drink cue',()=>{
+ const game={
+  stage:'ready',mySocialEvent:{serial:30,at:9500},
+  myDrinkEvent:{serial:31,at:9500}
+ };
+ assert.deepEqual(kinds(cues(game,'player','p3',10000)),['social']);
+ assert.deepEqual(kinds(cues({...game,myDrinkEvent:{serial:32,at:9400}},'player','p3',10000)),['social','drink']);
+ assert.deepEqual(kinds(cues({stage:'ready',mySocialEvent:{serial:30,at:9500}},'player','p3',10000)),['social']);
 });

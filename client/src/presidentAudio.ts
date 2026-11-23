@@ -5,6 +5,10 @@ import {startPresidentAmbient,type AmbientMusic} from './presidentAmbientMusic';
 import {newPresidentSoundCues,presidentSoundCues,type PACueKind} from './presidentSoundEvents';
 
 const prefKey='curtbox.pa.effects';
+// CC0 recording: two tankards clink in a toast (SFXMint).
+// https://sfxmint.com/sounds/tavern-ambience-05
+// The publisher explicitly permits linking to the MP3 from other sites.
+const socialCheersUrl='https://sfxmint.com/dl/tavern-ambience-05.mp3';
 function preference(){
  try{return window.localStorage.getItem(prefKey)!=='off';}catch{return true;}
 }
@@ -56,7 +60,18 @@ export function usePresidentSounds(view:RoomView,now:number,offset:number){
  });
  const context=useRef<AudioContext|null>(null),seen=useRef(new Set<string>());
  const output=useRef<GainNode|null>(null),volumeRef=useRef(volume);
+ const cheersMedia=useRef<HTMLAudioElement|null>(null);
  volumeRef.current=volume;
+ useEffect(()=>{
+  const media=new Audio(socialCheersUrl);
+  media.preload='auto';
+  media.volume=volumeRef.current;
+  cheersMedia.current=media;
+  return()=>{
+   media.pause();media.removeAttribute('src');media.load();
+   if(cheersMedia.current===media)cheersMedia.current=null;
+  };
+ },[]);
  const room=useRef(view.code);
  const unlock=useCallback(()=>{
   try{
@@ -83,6 +98,7 @@ export function usePresidentSounds(view:RoomView,now:number,offset:number){
   const normalized=clampPresidentVolume(next);
   setVolumeState(normalized);
   if(output.current)output.current.gain.value=normalized;
+  if(cheersMedia.current)cheersMedia.current.volume=normalized;
   try{window.localStorage.setItem('curtbox.pa.effectsVolume',String(normalized));}catch{/* Storage optional. */}
  },[]);
  const toggle=useCallback(()=>{
@@ -101,7 +117,17 @@ export function usePresidentSounds(view:RoomView,now:number,offset:number){
   const fresh=newPresidentSoundCues(cues,seen.current);
   if(!enabled)return;
   for(const cue of fresh){
-   try{if(context.current&&output.current)playSound(context.current,cue.kind,output.current);}catch{/* Sound failure never interrupts gameplay. */}
+   try{
+    if(cue.kind==='social'&&cheersMedia.current){
+     // Play a licensed real-world toast. A blocked/unavailable media stream
+     // falls back to the original local synthesized cheer.
+     const media=cheersMedia.current;
+     media.pause();media.currentTime=0;
+     void media.play().catch(()=>{
+      if(context.current&&output.current)playSound(context.current,'social',output.current);
+     });
+    }else if(context.current&&output.current)playSound(context.current,cue.kind,output.current);
+   }catch{/* Sound failure never interrupts gameplay. */}
   }
  },[view,now,offset,enabled]);
  return {enabled,volume,setVolume,toggle,unlock};
