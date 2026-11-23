@@ -84,3 +84,6 @@ Both Host presenter views use `client/src/ConnectionName.tsx` for TV-visible dis
 ## Mandatory branch lifecycle
 
 After CI passes and a PR is merged into `main`, **delete its feature branch**, including documentation and repair branches. The repository's `.github/workflows/cleanup-merged-branches.yml` automates this; check its actual Actions result and verify the branch disappeared. The workflow skips protected/default branches, forks, branches with open PRs, and branches that advanced since a merge. Do not create stale branches or claim cleanup succeeded until the branch list confirms it. A workflow_dispatch run can clean preexisting merged branches.
+
+## Selection implementation (#6, #14)
+`client/src/presidentSelection.ts` contains the pure rank-aware card toggle and available-card filtering. Use **single-rank** mode for normal Play/Social and **mixed-rank** mode for Card Exchange. The React component clears selection on hand, stage and participant identity changes, **not current turn-owner changes**; that distinction allows preselection before one's turn. After the server reports success it clears, but failed actions preserve selection. Test with `client/tests/president-selection.test.mjs`, which runs through `npm run test:pure`. Do not move this rule into a server-only shortcut; the server still enforces legality.
