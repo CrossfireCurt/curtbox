@@ -212,3 +212,13 @@
   box-shadow: 0 0 0 6px #241831, 0 0 18px #c2a6ff !important;
 }
 .tv-mode button:focus { border-color: #f2dc9a !important; }
+
+
+/* Shared Host/presenter-only connection status; bots never display warnings. */
+.connection-name{display:inline-flex;align-items:center;gap:.38em;max-width:100%;vertical-align:middle;min-width:0}
+.connection-name-text{display:inline-block;min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.connection-warning{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;color:#ffcf77;background:#4b2915;border:1px solid #f9b66a;border-radius:5px;padding:4px;box-shadow:0 0 0 1px #0003}
+.connection-warning svg{display:block;width:17px;height:17px}
+.pa-seat .connection-warning{padding:3px}
+.lobby-seat .connection-warning{padding:4px}
+@media (prefers-contrast: more){.connection-warning{background:#000;color:#fff;border:2px solid #fff}}

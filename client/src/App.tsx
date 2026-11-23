@@ -1,6 +1,7 @@
 import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
 import {io, type Socket} from 'socket.io-client';
 import {QRCodeSVG} from 'qrcode.react';
+import {ConnectionName} from './ConnectionName';
 import {AVATARS,REACTIONS,allowedRating} from '../../shared/types';
 import type {Ack,Choice,PublicGame,RoomView,Role,Settings,SourceInfo} from '../../shared/types';
 import {useGameAudio} from './audio';
@@ -177,7 +178,7 @@ function PercentagePicker({value,onChange,onPreview,disabled}:{value:number;onCh
  return <div className="percent-picker"><div className="percent-number">{value}<span>%</span></div><input aria-label="Choose a percentage" type="range" min="0" max="100" step="1" value={value} disabled={disabled} onChange={e=>change(Number(e.target.value))} onPointerUp={e=>finish(Number(e.currentTarget.value))} onKeyUp={e=>{if(['ArrowLeft','ArrowRight','Home','End','Enter'].includes(e.key))finish(Number(e.currentTarget.value));}}/><div className="range-ends"><span>0%</span><span>100%</span></div><p className="helper">Moving the slider is only a preview. Press Submit to save your answer.</p></div>;
 }
 function SourceDetails({source}:{source:SourceInfo}){return <div className="source-details"><p><b>Publisher:</b> {source.publisher} ({source.year})</p><p><b>Original wording:</b> {source.originalWording}</p>{source.population&&<p><b>Population:</b> {source.population}</p>}{source.geography&&<p><b>Geography:</b> {source.geography}</p>}{source.fieldDates&&<p><b>Field dates:</b> {source.fieldDates}</p>}{source.sampleSize&&<p><b>Sample size:</b> {points(source.sampleSize)}</p>}{source.methodology&&<p><b>Methodology:</b> {source.methodology}</p>}{source.missingDetails?.length&&<p><b>Not reported:</b> {source.missingDetails.join(', ')}</p>}{source.url&&<a href={source.url} target="_blank" rel="noopener noreferrer">Open source ↗</a>}</div>;}
-function Leaderboard({ranks,revealStep}:{ranks:NonNullable<PublicGame['finalRanks']>;revealStep:number}){const distinct=[...new Set(ranks.map(p=>p.rank))].sort((a,b)=>b-a);const visible=new Set(distinct.slice(0,revealStep));return <div className="leaderboard">{ranks.filter(p=>visible.has(p.rank)).map(p=><div key={p.id} className={'leader-row'+(p.rank===1?' winner':'')}><span>{p.rank===1?'🏆':`#${p.rank}`} {p.avatar} {p.name}</span><strong>{points(p.score)}</strong></div>)}</div>;}
+function Leaderboard({ranks,revealStep,disconnected}:{ranks:NonNullable<PublicGame['finalRanks']>;revealStep:number;disconnected:Set<string>}){const distinct=[...new Set(ranks.map(p=>p.rank))].sort((a,b)=>b-a);const visible=new Set(distinct.slice(0,revealStep));return <div className="leaderboard">{ranks.filter(p=>visible.has(p.rank)).map(p=><div key={p.id} className={'leader-row'+(p.rank===1?' winner':'')}><span>{p.rank===1?'🏆':`#${p.rank}`} {p.avatar} <ConnectionName name={p.name} offline={disconnected.has(p.id)}/></span><strong>{points(p.score)}</strong></div>)}</div>;}
 function Highlights({items}:{items:NonNullable<PublicGame['highlights']>}){return <div className="highlights">{items.map(item=><div key={item.label}><span>{item.label}</span><strong>{item.playerName}</strong><small>{item.detail}</small></div>)}</div>;}
 
 /** TV-first lobby. No game scores, oversized title treatment, or compact player chips. */
@@ -198,7 +199,7 @@ function LobbyStage({view,remaining}:{view:RoomView;remaining:number}){
     {slots.map((player,index)=><div key={player?.id??`empty-${index}`} className={'lobby-seat'+(player?' occupied':' empty')+(player?.id===view.primaryId?' controller-seat':'')}>
       {player?<>
         <div className="lobby-avatar" aria-hidden="true">{player.avatar??'🎮'}</div>
-        <strong className="lobby-player-name">{player.name}</strong>
+        <strong className="lobby-player-name"><ConnectionName name={player.name} offline={!player.online}/></strong>
         {player.id===view.primaryId&&<span className="lobby-controller-tag" title="First player controls when the match starts">★ CONTROLLER</span>}
       </>:<><span className="lobby-empty-icon" aria-hidden="true">+</span><span className="lobby-empty-label">OPEN SLOT</span></>}
       <span className="lobby-seat-number">{String(index+1).padStart(2,'0')}</span>
@@ -273,7 +274,7 @@ function ScoringRuler({actual,focus,showdown}:{actual:number;focus?:NonNullable<
  </div>;
 }
 
-function SurveyReveal({g}:{g:PublicGame}){
+function SurveyReveal({g,disconnected}:{g:PublicGame;disconnected:Set<string>}){
  const scoring=g.phase==='scoreReveal'||g.phase==='finaleScore';
  const isFinale=g.phase==='finaleReveal'||g.phase==='finaleScore';
  const showdown=isFinale&&g.finalMode==='showdown';
@@ -293,7 +294,7 @@ function SurveyReveal({g}:{g:PublicGame}){
    <div className="reveal-ranked-answers"><span className="reveal-answer-title">MOST POPULAR ANSWERS</span>{resultOptions.map((option,i)=><div className="reveal-ranked-line" key={option.id}><b>{i+1}</b><span>{option.label}</span><strong>{option.percent}%</strong></div>)}</div>}
   {actual!==undefined&&<ScoringRuler actual={actual} focus={focus} showdown={showdown}/>}
   {!scoring&&focus&&<div key={`${g.question?.id}-${g.phase}-${g.revealStepInTurn}`} className="reveal-player-focus scoring-focus" aria-live="polite">
-    <div className="reveal-player-identity"><span className="reveal-player-avatar">{focus.avatar??'🎮'}</span><div><small>{stage}</small><strong>{focus.name}</strong></div></div>
+    <div className="reveal-player-identity"><span className="reveal-player-avatar">{focus.avatar??'🎮'}</span><div><small>{stage}</small><strong><ConnectionName name={focus.name} offline={disconnected.has(focus.playerId)}/></strong></div></div>
     <div className="reveal-player-guess"><small>{focus.isGuesser?'GUESSED PERCENTAGE':isFinale?'FINAL ANSWER':'CALLED IT'}</small><strong>{displayChoice(focus)}</strong><span className="scoring-verdict">{focus.explanation?.verdict}</span></div>
     <div className={'reveal-player-points'+(focus.points>0?' earned':'')}><small>POINTS EARNED</small><strong>+{points(focus.points)}</strong></div>
     {focus.explanation&&<div className="scoring-explanation"><div className="scoring-math">{focus.explanation.calculation}</div><div className="scoring-parts">{focus.explanation.parts.map(part=><div key={`${part.label}-${part.value}`}><span>{part.label}</span><b>{part.value}</b></div>)}</div></div>}
@@ -304,7 +305,7 @@ function SurveyReveal({g}:{g:PublicGame}){
    {roster.map((seat,i)=>{
     const entry=entries.find(e=>e.playerId===seat.playerId);
     return <div key={seat.playerId} className={`scoring-roster-seat${entry?' is-revealed':''}${focus?.playerId===seat.playerId?' is-current':''}`}>
-     <span className="scoring-roster-position">{i+1}</span><span className="scoring-roster-avatar">{seat.avatar??'🎮'}</span><strong>{seat.name}</strong>
+     <span className="scoring-roster-position">{i+1}</span><span className="scoring-roster-avatar">{seat.avatar??'🎮'}</span><strong><ConnectionName name={seat.name} offline={disconnected.has(seat.playerId)}/></strong>
      <span className="scoring-roster-choice">{entry?displayChoice(entry):'COMING UP'}</span>
      <b>{entry?`+${points(entry.points)}`:'—'}</b>
     </div>;
@@ -318,6 +319,7 @@ function SurveyReveal({g}:{g:PublicGame}){
 function GameStage({view,now,offset,reactions,onQR}:{view:RoomView;now:number;offset:number;reactions:ReactEvent[];onQR:()=>void}){
  const g=view.game;
  const players=view.participants.filter(p=>p.role==='player');
+ const disconnected=new Set(players.filter(p=>!p.online).map(p=>p.id));
  const current=players.find(p=>p.id===g?.currentPlayerId);
  const remaining=Math.max(0,((view.status==='countdown'?view.countdownEndsAt:g?.phaseEndsAt)??0)-now+offset);
  const isResults=view.status==='resultsReveal'||view.status==='results';
@@ -327,8 +329,8 @@ function GameStage({view,now,offset,reactions,onQR}:{view:RoomView;now:number;of
   {(view.status==='lobby'||view.status==='countdown')&&<LobbyStage view={view} remaining={remaining}/>}
   {view.status==='playing'&&g&&<>
    <div className="board-phase"><span>{g.phase.startsWith('finale')?'THE FINALE':g.round===1?'ROUND ONE':'ROUND TWO'} <i>·</i> {PHASE[g.phase]??g.phase}</span><span className="board-clock">{timeLabel(remaining)}</span></div>
-   {isTurnReveal?<SurveyReveal g={g}/>:<div className="board-question">
-    <div className="board-kicker">{g.phase==='finaleInput'?'EVERYONE PLAYS':current?`${current.name.toUpperCase()}'S TURN`:'THE SURVEY'}</div>
+   {isTurnReveal?<SurveyReveal g={g} disconnected={disconnected}/>:<div className="board-question">
+    <div className="board-kicker">{g.phase==='finaleInput'?'EVERYONE PLAYS':current?<><ConnectionName name={current.name.toUpperCase()} offline={!current.online}/>'S TURN</>:'THE SURVEY'}</div>
     <h2>{g.question?.text??'Next question coming up'}</h2>
     {g.phase==='guess'&&<div className="board-answer">{g.publicGuess===undefined?<span className="answer-waiting">WAITING FOR A GUESS</span>:<><span className="answer-digit">{g.publicGuess}<small>%</small></span><span className="answer-caption">PLAYER'S CURRENT GUESS</span></>}</div>}
     {g.phase==='predict'&&<div className="board-answer"><span className="answer-digit">{g.publicGuess}<small>%</small></span><span className="answer-caption">HIGHER OR LOWER?</span></div>}
@@ -338,12 +340,12 @@ function GameStage({view,now,offset,reactions,onQR}:{view:RoomView;now:number;of
    <div className={'board-bottom'+(['scoreReveal','finaleScore'].includes(g.phase)?' scores-committing':'')}>
     <span>THE SCOREBOARD</span>
     <div className="score-strip">{players.map(p=><div key={`${g.id}-${p.id}`} className={'score-tile'+(['scoreReveal','finaleScore'].includes(g.phase)&&(g.lastPoints[p.id]??0)>0?' points-updating':'')}>
-      <span>{p.avatar??'👾'} {p.name}</span><strong><ScoreCounter score={p.score}/></strong>
+      <span>{p.avatar??'👾'} <ConnectionName name={p.name} offline={!p.online}/></span><strong><ScoreCounter score={p.score}/></strong>
       {['scoreReveal','finaleScore'].includes(g.phase)&&(g.lastPoints[p.id]??0)>0&&<em className="score-added">+{points(g.lastPoints[p.id])}</em>}
     </div>)}</div>
    </div>
   </>}
-  {isResults&&g&&<div className="show-center final-presentation"><div className="board-eyebrow">THE FINAL SCORES</div><h1>{view.status==='results'?'THE RESULTS':'WHO WILL WIN?'}</h1><Leaderboard ranks={g.finalRanks??[]} revealStep={view.status==='results'?999:(g.revealStep??0)}/>{view.status==='results'&&g.highlights&&<Highlights items={g.highlights}/>}<p className="stage-hint">{view.status==='results'?'WAITING FOR THE PRIMARY PLAYER TO RETURN TO LOBBY':'REVEALING THE STANDINGS'}</p></div>}
+  {isResults&&g&&<div className="show-center final-presentation"><div className="board-eyebrow">THE FINAL SCORES</div><h1>{view.status==='results'?'THE RESULTS':'WHO WILL WIN?'}</h1><Leaderboard ranks={g.finalRanks??[]} revealStep={view.status==='results'?999:(g.revealStep??0)} disconnected={disconnected}/>{view.status==='results'&&g.highlights&&<Highlights items={g.highlights}/>}<p className="stage-hint">{view.status==='results'?'WAITING FOR THE PRIMARY PLAYER TO RETURN TO LOBBY':'REVEALING THE STANDINGS'}</p></div>}
   <div className="board-footer"><span>CURTBOX ORIGINAL</span><button onClick={onQR}>SCAN TO JOIN · {view.code}</button></div>
  </section><div className="emote-overlay">{reactions.filter(r=>now-r.at<3700).slice(-4).map(r=><div key={r.at+'-'+r.by}><span>{r.emoji}</span><b>{r.by}</b></div>)}</div></main>;
 }
