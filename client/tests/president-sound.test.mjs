@@ -54,6 +54,9 @@ test('audio is user-controllable and Socials use downloaded Mixkit audio with a 
  assert.match(ui,/sounds\.toggle/);
  const synthesized=audio.split('export function usePresidentMusic')[0];
  assert.match(synthesized,/\/audio\/sfx\/mixkit-social-cheer-459\.mp3/);
+ assert.match(synthesized,/\/audio\/sfx\/mixkit-skip-laugh-424\.mp3/);
+ assert.match(synthesized,/cue\.kind==='skip'&&view\.me\.role!=='host'/);
+ assert.match(synthesized,/skipLaughMedia\.current/);
  assert.match(synthesized,/media\.play\(\)\.catch/);
  assert.match(synthesized,/playSound\(context\.current,'social',output\.current\)/);
  assert.match(audio,/\/audio\/music\//);
