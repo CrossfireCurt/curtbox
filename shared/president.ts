@@ -13,12 +13,15 @@ export interface PARank {id:string;name:string;position:number}
 export interface PAVote {proposals:PADecreeAction[];votes:Record<string,number>;deadline:number;tieIndices?:number[]}
 export interface PAExchange {upper:string;lower:string;count:number;original:PACard[];selected?:PACard[]}
 export interface PABot {id:string;name:string;joinedAt:number}
+export interface PAPilePlay {by:string;cards:PACard[];serial:number}
+export interface PAClearedPile {by:string;reason:string;at:number;serial:number;cards:PACard[];plays:PAPilePlay[]}
 export interface PAState {
   stage:PAStage; handNumber:number; seats:string[]; hands:Record<string,PACard[]>; active:string[];
   bots:PABot[]; botActionKey?:string; botActionAt?:number;
   ready:string[]; previousRanks:PARank[]; finished:string[]; handRanks:PARank[];
   leadPlayer?:string; turn?:string; turnEndsAt?:number; pile:PACard[]; pileOwner?:string; pileRank?:number;
   passed:string[]; lastPlay?:{player:string;rank:number;count:number;cards:PACard[];serial:number};serial:number;
+  pilePlays?:PAPilePlay[];pileHistory?:PAClearedPile[];
   lastClear?:{by:string;cards:PACard[];at:number;reason:string;serial:number};
   lastSkip?:{by:string;skipped:string;at:number;serial:number};
   exchange:PAExchange[]; stageEndsAt?:number; decrees:PADecree[];
@@ -30,6 +33,7 @@ export interface PAState {
 export interface PAPublic {
   stage:PAStage;handNumber:number;seats:{id:string;name:string;cards:number;position?:number;online:boolean;ready:boolean;bot:boolean;nextHand?:boolean}[];
   currentPlayerId?:string;turnEndsAt?:number;stageEndsAt?:number;pile?:PACard[];pileOwner?:string;
+  pilePlays?:PAPilePlay[];pileHistory?:PAClearedPile[];
   lastClear?:PAState['lastClear'];lastSkip?:PAState['lastSkip'];event?:string;activeDecrees:PADecree[];
   handRanks:PARank[];previousRanks:PARank[];myHand?:PACard[];myReady?:boolean;inHand?:boolean;myFinished?:boolean;
   myExchange?:{count:number;original:PACard[];selected?:PACard[]};

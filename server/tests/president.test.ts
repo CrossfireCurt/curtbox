@@ -405,3 +405,45 @@ test('bots do not receive drink acknowledgments but their 2s can prompt humans',
  assert.equal(g.drinking['p1']?.length,1);
  assert.match(g.drinking['p1'][0],/played a 2/);
 });
+
+test('public pile plays keep latest combination and show earlier card values without overlap',()=>{
+ const r=fixture(),g=r.pa!;for(let i=1;i<=4;i++)readyPA(r,`p${i}`,true,1000);
+ g.turn='p1';g.lastClear={by:'p1',cards:[],at:0,reason:'setup',serial:0};
+ g.hands.p1=['5C','5D','9S'];g.hands.p2=['7C','7D','9H'];
+ playPA(r,'p1',['5C','5D'],2000);playPA(r,'p2',['7C','7D'],2001);
+ const host=publicPA(r,{id:'host',role:'host'} as Participant)!;
+ assert.deepEqual(host.pile,['5C','5D','7C','7D']);
+ assert.deepEqual(host.pilePlays?.map(p=>p.cards),[['5C','5D'],['7C','7D']]);
+ assert.deepEqual(host.pilePlays?.map(p=>p.by),['p1','p2']);
+ assert.equal(publicPA(r,r.participants[0])?.pilePlays,undefined);
+ assert.equal(publicPA(r,r.participants[0])?.pileHistory,undefined);
+});
+
+test('special clear archives cards and attribution, and the next hand resets history',()=>{
+ const r=fixture(),g=r.pa!;for(let i=1;i<=4;i++)readyPA(r,`p${i}`,true,1000);
+ g.turn='p1';g.lastClear={by:'p1',cards:[],at:0,reason:'setup',serial:0};
+ g.hands.p1=['8C','KD'];g.hands.p2=['2H','KH'];
+ playPA(r,'p1',['8C'],2000);playPA(r,'p2',['2H'],2001);
+ const first=publicPA(r,{id:'host',role:'host'} as Participant)!.pileHistory!;
+ assert.equal(first.length,1);assert.equal(first[0].by,'p2');
+ assert.equal(first[0].reason,'Special clear');assert.deepEqual(first[0].cards,['8C','2H']);
+ assert.deepEqual(first[0].plays.map(p=>p.by),['p1','p2']);
+ assert.equal(g.pile.length,0);assert.equal(g.pilePlays?.length,0);
+ g.stage='ready';g.handNumber=1;g.ready=['p1','p2','p3','p4'];advancePA(r,2002);
+ assert.equal(g.handNumber,2);assert.equal(g.pileHistory?.length,0);
+});
+
+test('Social clear archives one event; cleared pile history is bounded at eight per hand',()=>{
+ const r=fixture(),g=r.pa!;r.paSettings!.social=true;for(let i=1;i<=4;i++)readyPA(r,`p${i}`,true,1000);
+ g.turn='p1';g.lastClear={by:'p1',cards:[],at:0,reason:'setup',serial:0};
+ g.hands.p1=['7C','KC'];g.hands.p2=['7D','7H','7S','KD'];
+ playPA(r,'p1',['7C'],2000);playPA(r,'p2',['7D','7H','7S'],2001,true);
+ assert.equal(g.pileHistory?.length,1);assert.equal(g.pileHistory?.[0].by,'p2');
+ assert.equal(g.pileHistory?.[0].reason,'Social');
+ assert.deepEqual(g.pileHistory?.[0].cards,['7C','7D','7H','7S']);
+ for(let i=0;i<9;i++){
+  g.pile=['3C'];g.pilePlays=[{by:'p1',cards:['3C'],serial:++g.serial}];
+  g.turn='p1';g.hands.p1=['2H','KC'];playPA(r,'p1',['2H'],2002+i);
+ }
+ assert.equal(g.pileHistory?.length,8);
+});
