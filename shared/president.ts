@@ -32,7 +32,7 @@ export interface PABot {id:string;name:string;joinedAt:number}
 export interface PAPilePlay {by:string;cards:PACard[];serial:number}
 export interface PAClearedPile {by:string;reason:string;at:number;serial:number;cards:PACard[];plays:PAPilePlay[]}
 /** Counters are server-owned, never computed from partial public snapshots. */
-export interface PAPlayerStats {cardsPlayed:number;pilesCleared:number;socials:number;twosPlayed:number;passes:number}
+export interface PAPlayerStats {cardsPlayed:number;pilesCleared:number;socials:number;twosPlayed:number;passes:number;skips:number}
 export interface PAState {
   stage:PAStage; handNumber:number; seats:string[]; hands:Record<string,PACard[]>; active:string[];
   bots:PABot[]; botActionKey?:string; botActionAt?:number;
