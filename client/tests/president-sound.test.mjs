@@ -58,7 +58,7 @@ test('audio is user-controllable and Socials use downloaded Mixkit audio with a 
  assert.match(synthesized,/cue\.kind==='skip'&&view\.me\.role!=='host'/);
  assert.match(synthesized,/skipLaughMedia\.current/);
  assert.match(synthesized,/media\.play\(\)\.catch/);
- assert.match(synthesized,/playSound\(context\.current,'social',output\.current\)/);
+ assert.match(synthesized,/playSound\(context\.current,cue\.kind,output\.current\)/);
  assert.match(audio,/\/audio\/music\//);
 });
 
