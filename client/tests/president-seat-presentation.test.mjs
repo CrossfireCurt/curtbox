@@ -38,16 +38,16 @@ test('rank emoji is before player name; current finishing rank wins',()=>{
  assert.match(ui,/aria-label=\{seatRank\}/);
  assert.doesNotMatch(ui,/p\.position&&!finish&&<small>\{rankTitle/);
  assert.match(ui,/aria-label="Bot"/);
- assert.match(css,/\.pa-seat \.pa-seat-player-name,\.pa-seat \.pa-seat-timer\{font-size:clamp\(1\.12rem/);
+ assert.match(css,/\.pa-seat \.pa-seat-player-name,\.pa-seat \.pa-seat-timer\{font-size:var\(--pa-seat-header-font\)\}/);
 });
 test('turn timer aligns in the same row and font size as name, unboxed and server-timed',()=>{
  assert.match(ui,/game\.stage==='play'&&game\.currentPlayerId===p\.id/);
  assert.match(ui,/role="timer"/);
  assert.match(ui,/\{formatLeft\(game\.turnEndsAt,now,offset\)\}/);
  assert.match(ui,/className="pa-seat-header"/);
- assert.match(css,/\.pa-seat-header\{display:flex;align-items:center;justify-content:space-between/);
+ assert.match(css,/\.pa-seat-header\{display:flex;align-items:flex-start;justify-content:space-between/);
  assert.match(css,/\.pa-seat \.pa-seat-timer\{position:static;flex:0 0 auto/);
- assert.match(css,/\.pa-seat \.pa-seat-player-name,\.pa-seat \.pa-seat-timer\{font-size:clamp\(1\.12rem/);
+ assert.match(css,/\.pa-seat \.pa-seat-player-name,\.pa-seat \.pa-seat-timer\{font-size:var\(--pa-seat-header-font\)\}/);
  assert.match(css,/\.pa-seat \.pa-seat-timer\{[^}]*border:0/);
  assert.match(css,/\.pa-seat \.pa-seat-timer\.is-low\{/);
 });
