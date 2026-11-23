@@ -1,5 +1,21 @@
 /** President / Asshole wire contracts. Cards are rank+suit: 10H, 4C, AS. */
 export type PACard = string;
+/** Consecutive cards of the top rank, independent of which play contributed. */
+export function topRankRun(pile:readonly PACard[]):{rank:string;count:number}|undefined{
+ if(!pile.length)return;
+ const rank=pile[pile.length-1].slice(0,-1);
+ let count=0;
+ for(let i=pile.length-1;i>=0&&pile[i].slice(0,-1)===rank;i--)count++;
+ return {rank,count};
+}
+export function completesFourOfKind(pile:readonly PACard[],cards:readonly PACard[]):boolean{
+ if(!cards.length||cards.length>4)return false;
+ const rank=cards[0].slice(0,-1);
+ if(cards.some(c=>c.slice(0,-1)!==rank))return false;
+ if(cards.length===4)return true;
+ const run=topRankRun(pile);
+ return !!run&&run.rank===rank&&run.count>=1&&run.count<=3&&run.count+cards.length===4;
+}
 export type PAStage = 'ready'|'exchange'|'play'|'decree'|'vote'|'ended';
 export type PADecreeKey = 'unequal_burden'|'rank_seating'|'reverse_deal'|'reverse_play'|'double_trouble'|'card_exchange'|'democracy'|'term_limits'|'max_active'|'drink_twos'|'require_ack';
 export type PADecreeAction = {kind:'enact'|'repeal';key:PADecreeKey;value?:number};

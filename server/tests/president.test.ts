@@ -145,15 +145,15 @@ test('ordinary equal-rank response skips one seat, keeps the pile, and publishes
  const r=fixture(),g=r.pa!;for(let i=1;i<=4;i++)readyPA(r,`p${i}`,true,1000);
  const p=g.turn!,direction=g.seats;
  const q=direction[(direction.indexOf(p)+1)%4],skipped=direction[(direction.indexOf(p)+2)%4],after=direction[(direction.indexOf(p)+3)%4];
- g.hands[p]=['6C','6D','KC'];g.hands[q]=['6H','6S','7H'];
+ g.hands[p]=['6C','6D','KC'];g.hands[q]=['6H','7H','7S'];
  g.turn=p;g.pile=[];g.lastClear={by:p,cards:[],reason:'setup',at:0,serial:0};
- playPA(r,p,['6C','6D'],2000);
+ playPA(r,p,['6C'],2000);
  assert.equal(g.turn,q);
- assert.throws(()=>playPA(r,q,['7H'],2001),/Match the number/);
- playPA(r,q,['6H','6S'],2002);
- assert.equal(g.turn,after);assert.equal(g.pile.length,4);
+ assert.throws(()=>playPA(r,q,['7H','7S'],2001),/Match the number/);
+ playPA(r,q,['6H'],2002);
+ assert.equal(g.turn,after);assert.equal(g.pile.length,2);
  assert.equal(g.pileOwner,q);assert.equal(g.lastClear?.reason,'setup');
- assert.equal(g.lastPlay?.player,q);assert.equal(g.lastPlay?.count,2);
+ assert.equal(g.lastPlay?.player,q);assert.equal(g.lastPlay?.count,1);
  assert.deepEqual({by:g.lastSkip?.by,skipped:g.lastSkip?.skipped,at:g.lastSkip?.at},{by:q,skipped,at:2002});
  assert.equal(g.turnEndsAt,2002+r.paSettings!.turnSeconds*1000);
  assert.equal(publicPA(r,r.participants.find(x=>x.id===skipped)!)?.lastSkip?.skipped,skipped);
@@ -202,7 +202,7 @@ test('four of a kind and 2 remain special clears, never equal-rank skips',()=>{
  g.lastClear={by:'p1',cards:[],reason:'setup',at:0,serial:0};
  g.turn='p1';g.hands.p1=['5C','5D','5H','5S','KC'];
  playPA(r,'p1',['5C','5D','5H','5S'],2000);
- assert.equal(g.lastClear?.reason,'Special clear');assert.equal(g.lastSkip,undefined);
+ assert.equal(g.lastClear?.reason,'Social');assert.equal(g.lastSkip,undefined);
  g.hands.p1.push('2C');playPA(r,'p1',['2C'],2001);
  assert.equal(g.lastClear?.reason,'Special clear');assert.equal(g.pile.length,0);
 });
@@ -565,8 +565,8 @@ test('sound event snapshots expose card/clear only to presenter and targeted dri
  phone=publicPA(r,r.participants[1])!;
  assert.equal(board.myDrinkEvent,undefined);
  assert.equal(phone.myDrinkEvent?.at,2002);
- assert.equal(phone.myPendingDrinks?.length,1);
- assert.equal(publicPA(r,r.participants[0])?.myDrinkEvent,undefined);
+ assert.equal(phone.myPendingDrinks?.length,2);
+ assert.equal(publicPA(r,r.participants[0])?.myDrinkEvent?.at,2001);
  assert.equal(publicPA(r,r.participants[2])?.myDrinkEvent?.at,2002);
  const serial=phone.myDrinkEvent?.serial;
  const repeated=publicPA(r,r.participants[1]);
@@ -579,4 +579,70 @@ test('manual Pass drink notification carries a unique event ID to that phone',()
  passPA(r,'p2',2000,true);
  assert.equal(publicPA(r,r.participants[1])?.myDrinkEvent?.at,2000);
  assert.equal(publicPA(r,r.participants[0])?.myDrinkEvent,undefined);
+});
+
+test('top rank is counted across plays: 4 then 4 then last two can Social',()=>{
+ const r=fixture(),g=r.pa!;r.paSettings!.social=true;for(let i=1;i<=4;i++)readyPA(r,`p${i}`,true,1000);
+ g.turn='p1';g.lastClear={by:'p1',cards:[],reason:'fixture',at:0,serial:0};
+ g.hands.p1=['4C','KC'];g.hands.p2=['4D','KD'];g.hands.p3=['4H','4S','9C'];
+ playPA(r,'p1',['4C'],2000);playPA(r,'p2',['4D'],2001);
+ assert.equal(g.lastSkip?.skipped,'p3');
+ assert.deepEqual(publicPA(r,r.participants[2])?.socialRequirement,{rank:'4',count:2});
+ playPA(r,'p3',['4H','4S'],2002,true);
+ assert.equal(g.lastClear?.reason,'Social');assert.equal(g.lastClear?.by,'p3');
+ assert.deepEqual(g.lastClear?.cards,['4C','4D','4H','4S']);
+ assert.equal(g.lastSkip,undefined);
+ assert.equal(g.handStats?.p3?.socials,1);
+});
+test('turn play that completes same rank automatically counts as Social',()=>{
+ const r=fixture(),g=r.pa!;r.paSettings!.social=false;for(let i=1;i<=4;i++)readyPA(r,`p${i}`,true,1000);
+ g.turn='p1';g.lastClear={by:'p1',cards:[],reason:'fixture',at:0,serial:0};
+ g.pile=['8C','8D'];g.pileRank=5;g.pileOwner='p3';g.lastPlay={player:'p3',rank:5,count:1,cards:['8D'],serial:20};
+ g.hands.p1=['8H','8S','KH'];
+ playPA(r,'p1',['8H','8S'],2000,false);
+ assert.equal(g.lastClear?.reason,'Social');assert.equal(g.handStats?.p1?.socials,1);
+});
+test('four cards played together are Social; unrelated off-turn four cannot interrupt',()=>{
+ const r=fixture(),g=r.pa!;r.paSettings!.social=true;for(let i=1;i<=4;i++)readyPA(r,`p${i}`,true,1000);
+ g.turn='p1';g.lastClear={by:'p1',cards:[],reason:'fixture',at:0,serial:0};
+ g.hands.p1=['5C','5D','5H','5S','KH'];playPA(r,'p1',['5C','5D','5H','5S'],2000);
+ assert.equal(g.lastClear?.reason,'Social');assert.equal(g.handStats?.p1?.socials,1);
+ g.hands.p3=['7C','7D','7H','7S','KC'];
+ assert.throws(()=>playPA(r,'p3',['7C','7D','7H','7S'],2001,true),/No eligible Social/);
+});
+test('Asshole-mode Social notifies every human exactly once, including finisher, never bots',()=>{
+ const r=fixture(),g=r.pa!;r.paSettings!.social=true;r.paSettings!.mode='asshole';
+ configurePA(r,{botCount:1});for(let i=1;i<=4;i++)readyPA(r,`p${i}`,true,1000);
+ g.turn='p1';g.lastClear={by:'p1',cards:[],reason:'fixture',at:0,serial:0};
+ g.hands.p1=['6C','KC'];g.hands.p2=['6D','6H','6S','KH'];
+ playPA(r,'p1',['6C'],2000);playPA(r,'p2',['6D','6H','6S'],2001,true);
+ for(const p of r.participants){
+  assert.equal(g.drinking[p.id]?.length,1,p.id);
+  assert.equal(publicPA(r,p)?.myDrinkEvent?.at,2001);
+ }
+ assert.equal(g.drinking[g.bots[0].id],undefined);
+ assert.equal(publicPA(r,{id:'host',role:'host'} as Participant)?.myDrinkEvent,undefined);
+});
+test('Social ending the hand keeps Social history, stats, and group prompts',()=>{
+ const r=fixture(),g=r.pa!;r.paSettings!.social=true;r.paSettings!.mode='asshole';
+ for(let i=1;i<=4;i++)readyPA(r,`p${i}`,true,1000);
+ g.finished=['p1','p2'];g.turn='p3';g.pile=['10C','10D'];g.pileRank=7;g.pileOwner='p2';
+ g.lastPlay={player:'p2',rank:7,count:1,cards:['10D'],serial:42};
+ g.hands.p3=['10H','10S'];
+ playPA(r,'p3',['10H','10S'],2000,false);
+ assert.equal(g.stage,'ready');
+ assert.equal(g.lastClear?.reason,'Social');assert.equal(g.pileHistory?.at(-1)?.reason,'Social');
+ assert.equal(g.handStats?.p3?.socials,1);
+ for(const p of r.participants)assert.equal(g.drinking[p.id]?.length,1);
+});
+test('Socials in President mode never prompt; four 2s do not double prompt in Asshole mode',()=>{
+ const r=fixture(),g=r.pa!;r.paSettings!.social=true;for(let i=1;i<=4;i++)readyPA(r,`p${i}`,true,1000);
+ g.turn='p1';g.lastClear={by:'p1',cards:[],reason:'fixture',at:0,serial:0};
+ g.hands.p1=['7C','KC'];g.hands.p2=['7D','7H','7S','KH'];
+ playPA(r,'p1',['7C'],2000);playPA(r,'p2',['7D','7H','7S'],2001,true);
+ assert.deepEqual(g.drinking,{});
+ r.paSettings!.mode='asshole';g.decrees.push({key:'drink_twos'});g.turn='p1';g.hands.p1=['2C','2D','2H','2S','KC'];
+ playPA(r,'p1',['2C','2D','2H','2S'],2002);
+ assert.equal(g.lastClear?.reason,'Social');
+ for(const p of r.participants)assert.equal(g.drinking[p.id]?.length,1);
 });

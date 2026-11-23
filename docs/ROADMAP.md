@@ -73,3 +73,6 @@ The ready-for-next-hand screen uses named ranks and server-owned last-hand + lif
 
 ## Delivered: #11 sound cues and #12 countdown on active presenter seat
 President / Asshole now has locally synthesized card placement, Social applause, pile-clear whoosh, optional skip cue on presenter; player-only turn notification, final-five-seconds ticking, skipped and drinking glass-clink cues. Server event IDs/timestamps and browser dedupe avoid replay on repeated snapshots. Local sound toggle/unlock supports browser autoplay limits. The active player's board seat shows the authoritative `turnEndsAt` countdown. Manual audio/browser/TV QA still needed.
+
+## Issue #24 — Revised Social completion
+Complete four of kind using the top contiguous same-rank run across earlier plays; on-turn four-of-kind always Social. One Play/Social action button, group drinking in Asshole mode, and correctly attributed last-hand clears. Adds engine/client tests; manual multiplayer and TV QA remains.
