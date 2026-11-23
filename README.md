@@ -127,3 +127,5 @@ The public presentation now shows **legible individual cards grouped by each acc
 ### Presentation and audio preferences
 
 Between President / Asshole hands, the public presenter displays a full-screen **Last hand** rankings/statistics view until players start the next hand; the circular table then returns. **Music and sound effects can be muted independently**: Survey Show's host Audio panel has separate toggles and sliders, and President / Asshole's presenter has separate Music and Effects buttons. The phone only controls its own gameplay sound effects; background music never plays on the phone.
+
+The President / Asshole presenter provides separate **Music volume** and **Sound effects volume** sliders (0–100%) alongside independent on/off buttons; player phones have an Effects volume slider. Settings persist on the individual device.

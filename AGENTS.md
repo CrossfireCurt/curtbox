@@ -108,3 +108,7 @@ PAPublic includes current-hand `handPlayerCount`, `seats[].finishedPosition`, `m
 ## Presenter Last Hand takeover + independent music/SFX controls (#28, #29)
 
 Public President / Asshole presentation substitutes a full-size `HandResults` screen for the circular table/sidebar during the between-hand Ready stage (and final ended stage) if there are completed `handRanks`. It returns to the table when the server begins the next hand; no client dismissal timer. Survey Show's `useGameAudio` uses independent, persisted music/SFX toggles with existing volume sliders; gating one must never mute the other. Old master mute initializes both new flags off. President / Asshole presenter music is separately enabled/disabled via `usePresidentMusic`, and phone-specific gameplay sounds via `usePresidentSounds`; no phone music. Tests cover UI branches and audio subsystem separation; continue to use regular merge commits with automatic branch deletion.
+
+## Independent President music/effects *volume* (#29 follow-up)
+
+Ensure the presenter exposes both **Music volume** and **Sound effects volume** as separate visible sliders, not just on/off switches. Player phones expose Effects volume only. The effects hook uses an independent Web Audio master `GainNode`, and the music hook uses the background HTMLAudioElement's volume. Both persist browser-local numeric settings and do not alter the other category. Preserve `president-volume.test.mjs` and `audio-category-controls.test.mjs` and require green GitHub CI before merge.

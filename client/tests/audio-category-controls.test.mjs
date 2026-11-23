@@ -46,3 +46,18 @@ test('President effects can be muted without disabling music',()=>{
  const source=presidentAudio.slice(presidentAudio.indexOf('export function usePresidentMusic'));
  assert.doesNotMatch(source,/usePresidentSounds|playSound\(/);
 });
+
+test('President music and SFX sliders are independently wired to live output volumes',()=>{
+ assert.match(pa,/value=\{music\.volume\} onChange=\{e=>music\.setVolume\(Number\(e\.target\.value\)\)\}/);
+ assert.match(pa,/value=\{sounds\.volume\} onChange=\{e=>sounds\.setVolume\(Number\(e\.target\.value\)\)\}/);
+ assert.match(pa,/aria-label="Music volume"/);
+ assert.match(pa,/aria-label="Sound effects volume"/);
+ assert.match(presidentAudio,/curtbox\.pa\.musicVolume/);
+ assert.match(presidentAudio,/curtbox\.pa\.effectsVolume/);
+ assert.match(presidentAudio,/const output=useRef<GainNode\|null>/);
+ assert.match(presidentAudio,/playSound\(context\.current,cue\.kind,output\.current\)/);
+ assert.match(presidentAudio,/music\.volume=volumeRef\.current/);
+ assert.match(presidentAudio,/if\(audio\.current\)audio\.current\.volume=normalized/);
+ assert.match(presidentAudio,/if\(output\.current\)output\.current\.gain\.value=normalized/);
+ assert.match(pa,/className="pa-phone-audio"/);
+});
