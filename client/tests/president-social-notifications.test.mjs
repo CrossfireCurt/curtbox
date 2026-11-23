@@ -26,11 +26,13 @@ test('skip and drink overlays show a caption below their emoji',()=>{
  assert.match(css,/\.pa-social-pile-overlay\{[^}]*flex-direction:column/);
  assert.match(css,/\.pa-skipped-seat \.pa-event-label\{/);
 });
-test('Social has a CC0 cheers recording with fallback and plays in both modes',()=>{
- assert.match(audio,/sfxmint\.com\/dl\/tavern-ambience-05\.mp3/);
- assert.match(audio,/cue\.kind==='social'&&cheersMedia\.current/);
+test('Social uses the downloaded Mixkit crowd cheer with synthesis fallback on either mode',()=>{
+ assert.match(audio,/\/audio\/sfx\/mixkit-social-cheer-459\.mp3/);
+ assert.match(audio,/\/audio\/sfx\/mixkit-skip-laugh-424\.mp3/);
+ assert.match(audio,/cue\.kind==='social'\?cheersMedia\.current:skippedPhone\?skipLaughMedia\.current:null/);
+ assert.match(audio,/const skippedPhone=cue\.kind==='skip'&&view\.me\.role!=='host'/);
  assert.match(audio,/media\.play\(\)\.catch/);
- assert.match(audio,/playSound\(context\.current,'social',output\.current\)/);
+ assert.match(audio,/playSound\(context\.current,cue\.kind,output\.current\)/);
  assert.match(cues,/if\(game\.mySocialEvent&&fresh\(game\.mySocialEvent\.at\)\)/);
  assert.match(cues,/kind:'social',key:`social:/);
  assert.match(cues,/game\.myDrinkEvent\.at!==game\.mySocialEvent\?\.at/);

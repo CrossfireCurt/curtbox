@@ -42,7 +42,10 @@ test('President presenter has separate independent music and effects toggles',()
  assert.match(presidentAudio,/const active=view\.me\.role==='host'&&/);
 });
 test('President effects can be muted without disabling music',()=>{
- assert.match(presidentAudio,/if\(!enabled&&context\.current\?\.state==='running'\)void context\.current\.suspend/);
+ assert.match(presidentAudio,/if\(!enabled\)\{/);
+ assert.match(presidentAudio,/cheersMedia\.current\?\.pause\(\)/);
+ assert.match(presidentAudio,/skipLaughMedia\.current\?\.pause\(\)/);
+ assert.match(presidentAudio,/if\(context\.current\?\.state==='running'\)void context\.current\.suspend/);
  const source=presidentAudio.slice(presidentAudio.indexOf('export function usePresidentMusic'));
  assert.doesNotMatch(source,/usePresidentSounds|playSound\(/);
 });

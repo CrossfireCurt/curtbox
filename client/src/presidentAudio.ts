@@ -5,10 +5,10 @@ import {startPresidentAmbient,type AmbientMusic} from './presidentAmbientMusic';
 import {newPresidentSoundCues,presidentSoundCues,type PACueKind} from './presidentSoundEvents';
 
 const prefKey='curtbox.pa.effects';
-// CC0 recording: two tankards clink in a toast (SFXMint).
-// https://sfxmint.com/sounds/tavern-ambience-05
-// The publisher explicitly permits linking to the MP3 from other sites.
-const socialCheersUrl='https://sfxmint.com/dl/tavern-ambience-05.mp3';
+// Licensed Mixkit recordings installed at build time; never committed as source.
+// https://mixkit.co/free-sound-effects/crowd/
+const socialCheersUrl='/audio/sfx/mixkit-social-cheer-459.mp3'; // #459
+const skipLaughUrl='/audio/sfx/mixkit-skip-laugh-424.mp3'; // "Crowd laugh" #424
 function preference(){
  try{return window.localStorage.getItem(prefKey)!=='off';}catch{return true;}
 }
@@ -61,15 +61,21 @@ export function usePresidentSounds(view:RoomView,now:number,offset:number){
  const context=useRef<AudioContext|null>(null),seen=useRef(new Set<string>());
  const output=useRef<GainNode|null>(null),volumeRef=useRef(volume);
  const cheersMedia=useRef<HTMLAudioElement|null>(null);
+ const skipLaughMedia=useRef<HTMLAudioElement|null>(null);
  volumeRef.current=volume;
  useEffect(()=>{
-  const media=new Audio(socialCheersUrl);
-  media.preload='auto';
-  media.volume=volumeRef.current;
-  cheersMedia.current=media;
+  const cheers=new Audio(socialCheersUrl),laugh=new Audio(skipLaughUrl);
+  for(const media of [cheers,laugh]){
+   media.preload='auto';media.volume=volumeRef.current;
+  }
+  cheersMedia.current=cheers;
+  skipLaughMedia.current=laugh;
   return()=>{
-   media.pause();media.removeAttribute('src');media.load();
-   if(cheersMedia.current===media)cheersMedia.current=null;
+   for(const media of [cheers,laugh]){
+    media.pause();media.removeAttribute('src');media.load();
+   }
+   if(cheersMedia.current===cheers)cheersMedia.current=null;
+   if(skipLaughMedia.current===laugh)skipLaughMedia.current=null;
   };
  },[]);
  const room=useRef(view.code);
@@ -92,13 +98,20 @@ export function usePresidentSounds(view:RoomView,now:number,offset:number){
   window.addEventListener('keydown',onGesture,{capture:true});
   return()=>{window.removeEventListener('pointerdown',onGesture,{capture:true});window.removeEventListener('keydown',onGesture,{capture:true});};
  },[enabled,unlock]);
- useEffect(()=>{if(!enabled&&context.current?.state==='running')void context.current.suspend().catch(()=>{});},[enabled]);
+ useEffect(()=>{
+  if(!enabled){
+   cheersMedia.current?.pause();
+   skipLaughMedia.current?.pause();
+   if(context.current?.state==='running')void context.current.suspend().catch(()=>{});
+  }
+ },[enabled]);
  useEffect(()=>()=>{if(context.current){void context.current.close().catch(()=>{});context.current=null;}},[]);
  const setVolume=useCallback((next:number)=>{
   const normalized=clampPresidentVolume(next);
   setVolumeState(normalized);
   if(output.current)output.current.gain.value=normalized;
   if(cheersMedia.current)cheersMedia.current.volume=normalized;
+  if(skipLaughMedia.current)skipLaughMedia.current.volume=normalized;
   try{window.localStorage.setItem('curtbox.pa.effectsVolume',String(normalized));}catch{/* Storage optional. */}
  },[]);
  const toggle=useCallback(()=>{
@@ -118,13 +131,15 @@ export function usePresidentSounds(view:RoomView,now:number,offset:number){
   if(!enabled)return;
   for(const cue of fresh){
    try{
-    if(cue.kind==='social'&&cheersMedia.current){
-     // Play a licensed real-world toast. A blocked/unavailable media stream
-     // falls back to the original local synthesized cheer.
-     const media=cheersMedia.current;
+    const skippedPhone=cue.kind==='skip'&&view.me.role!=='host';
+    const media=cue.kind==='social'?cheersMedia.current:skippedPhone?skipLaughMedia.current:null;
+    if(media){
+     // A skipped player's phone laughs; the host retains its distinctive
+     // synthesized skip cue. Socials use the Mixkit crowd cheer on both.
+     // Missing/blocked audio falls back to the existing local sound.
      media.pause();media.currentTime=0;
      void media.play().catch(()=>{
-      if(context.current&&output.current)playSound(context.current,'social',output.current);
+      if(context.current&&output.current)playSound(context.current,cue.kind,output.current);
      });
     }else if(context.current&&output.current)playSound(context.current,cue.kind,output.current);
    }catch{/* Sound failure never interrupts gameplay. */}
