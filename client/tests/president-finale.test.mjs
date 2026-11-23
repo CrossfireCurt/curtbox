@@ -25,7 +25,7 @@ test('reveals final ranks from last place to President, synchronized to the serv
  assert.equal(paFinaleVisibleRanks(at,at+1800,0),0);
  assert.match(ui,/const ranks=\[\.\.\.game\.handRanks\]\.sort\(\(a,b\)=>a\.position-b\.position\)/);
  assert.match(ui,/const visible=ranks\.slice\(Math\.max\(0,ranks\.length-revealed\)\)/);
- assert.match(ui,/className="pa-finale-rank'/);
+ assert.match(ui,/className=\{'pa-finale-rank'/);
  assert.match(ui,/className="pa-finale-screen"/);
  assert.match(ui,/GAME OVER!/);
 });
