@@ -178,3 +178,16 @@ Persistent `PAStage`: `ready → exchange? → play → decree? → vote? → re
 **Unverified historical catalogue:** Earlier Dictatorship/Executive Order/Presidential Authority/Ranked Authority/Board Meeting ideas have not been restored because their final specification could not be recovered; verify them before adding. Exact presentation styling/animations, animations for equal-rank vs Social vs 2 clears, accessibility polish, nuanced disconnected fairness and full security integration still need browser/E2E tests.
 
 **Important technical limitation at handoff:** 18 President / Asshole rules-engine tests pass; 15 Survey Show core and 20 client static checks also pass; full npm check/build/Docker and real multiplayer E2E remain **unverified** in the authoring environment. See `../ARCHITECTURE_AND_AGENT_HANDOFF.md`.
+
+
+## Queued UI and sound refinements (November 23, 2026)
+
+This is a requirement queue, **not a description of deployed behavior**. Implement with client/server regression tests and keep public Host vs private Player responsibilities separate:
+
+- [#6](https://github.com/CrossfireCurt/curtbox/issues/6): Player Play/Social selections may include multiple **same-rank** cards, never mixed ranks. Card Exchange still permits mixed ranks.
+- [#11](https://github.com/CrossfireCurt/curtbox/issues/11): Subtle card placement / clearing noises, **turn active** cue on current player's browser, low-time ticking before player turn expiration, and a **Skipped** sound on the skipped player's phone. Respect mute, user-gesture audio unlock and authoritative timestamps. Social clears, it is not a skip.
+- [#12](https://github.com/CrossfireCurt/curtbox/issues/12): Show the authoritative time remaining **inside the active player's square** on the public presentation (in addition to, or instead of, the global stage clock as appropriate).
+- [#13](https://github.com/CrossfireCurt/curtbox/issues/13): On the public **current pile**, show **Single, Pair, Triple, Four-of-a-kind** according to the latest accepted combination, not the accumulated pile size; reset when cleared.
+- [#14](https://github.com/CrossfireCurt/curtbox/issues/14): Keep valid preselected cards while waiting and when the player's turn activates; don't clear selection on `game.currentPlayerId` changes. Reset only on appropriate ownership, hand or phase transitions and successful submission.
+
+Coordinate #11's skipped cue with [#3](https://github.com/CrossfireCurt/curtbox/issues/3), which changes ordinary equal-rank plays to skips but leaves Social as a clear. Coordinate #13 with presentation legibility [#4](https://github.com/CrossfireCurt/curtbox/issues/4) and cleared pile history [#5](https://github.com/CrossfireCurt/curtbox/issues/5).

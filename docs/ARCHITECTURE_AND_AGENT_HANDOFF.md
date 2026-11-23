@@ -218,3 +218,8 @@ State ownership / security: bots are persisted virtual seats only, **not Socket.
 ## Connected GitHub development handoff (2026-11-23)
 
 The repository is hosted at `https://github.com/CrossfireCurt/curtbox`. GitHub Actions passed on `main` with a published `:main` image; older sections written before the first push are retained as historical context. New `.devcontainer/` configuration enables repeatable Node 22 + PostgreSQL 16 development from Codespaces or local VS Code. Read `docs/DEVELOPMENT_WORKFLOW.md` and `docs/ROADMAP.md` first. The next feature is Android TV (#1), followed by disconnect indicators (#2) and tracked card-game UI/behavior corrections (#3–#8). **No new runtime game rules are implemented in this workflow-only change.** Ordinary equal-rank clearing in current code must change to a skip, with Social still clearing (issue #3).
+
+
+## Incoming presenter/phone UX queue — Nov 23, 2026
+
+Issue details and acceptance criteria are linked in `docs/ROADMAP.md`: #11 separate card/turn-start/ticking/skip audio, #12 turn countdown in the active public seat, #13 pile combination label, #14 preserve preselected cards when turn ownership changes. Existing #6 covers only allowing same-rank cards in Play/Social selections; exchange returns may mix ranks. These tasks are pending and must not be conflated with past functionality. Source audit: `client/src/PresidentAsshole.tsx` resets selected cards by watching `game.currentPlayerId` and has a header turn clock but no in-seat one; `client/src/audio.ts` handles other game's Host-centric cues. Keep effects scoped to the correct participant and dedupe across `room:view` broadcasts/reconnects.
