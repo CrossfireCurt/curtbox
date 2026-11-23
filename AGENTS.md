@@ -90,3 +90,8 @@ After CI passes and a PR is merged into `main`, **delete its feature branch**, i
 
 ## Bot action delays (#7)
 `server/src/president.ts` exports `botDelayPA(kind,rng)`, sampling once for a fresh task; play 1800–3600 ms and Social 2400–4800 ms. `advancePA` persists chosen `botActionAt` and reuses it on subsequent ticks. A Social task is keyed to `lastPlay.serial` so a newer play cancels its eligibility. Clamp ordinary plays to host-configured short turn deadlines. Run `server/tests/president.test.ts` and test with live phone Social races before changing the timing windows.
+
+## Git ancestry policy — 2026-11-23 user correction
+All subsequent Curtbox pull requests MUST use a **regular merge commit** (GitHub "Create a merge commit", connector `merge_method: "merge"`), not squash or rebase merges. This preserves feature branch commits in `main` ancestry and visibly rejoins colored lines in Git graphs. Never rewrite old squash merges. Wait for green CI, merge, and verify the automatic branch-cleanup Action removed the merged head ref. See `docs/DEVELOPMENT_WORKFLOW.md`.
+## Last-hand results (#8)
+Server increments persisted `playerStats` and `handStats` on card plays, Socials, 2s, passes and pile archives, including end-of-hand clears. `handStats` resets only on new deal; cumulative `playerStats` persists. Player and host use `HandResults` to display **named**, not numeric, ranks, five last-hand metrics, and cumulative presidencies/streaks. Rank entries persist when a participant departs; newcomers show Unranked. Test `server/tests/president.test.ts` and `client/tests/president-hand-results.test.mjs`.

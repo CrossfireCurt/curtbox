@@ -67,3 +67,6 @@ The player card picker now preserves valid preselection across turn-owner change
 
 ## Bot reaction delay implementation — issue #7
 Normal bot plays now wait 1.8–3.6 seconds; bot Social waits 2.4–4.8 seconds with no automatic immediate Social win. The scheduled time persists in room state and invalidates when a new pile play closes Social. Very short host turn timers cap normal delays. Deterministic engine tests cover range endpoints, no rerolls, timeout cap and Social cancellation; physical multiplayer QA is recommended.
+
+## Issue #8 — Named ready-screen ranks and stats
+The ready-for-next-hand screen uses named ranks and server-owned last-hand + lifetime stats, on both player phones and presenter. Last-hand counters reset at the next deal while cumulative totals persist; departed finishers remain listed and unranked late joiners are distinct. See PR for #8. No private hands are exposed.
