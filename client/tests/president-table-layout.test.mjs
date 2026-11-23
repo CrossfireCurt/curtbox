@@ -15,12 +15,13 @@ test('seats encircle the pile at equal angles, separate from centered table',()=
  assert.match(css,/\.pa-seat\{position:absolute/);
  assert.match(css,/\.pa-table-ring \.pa-table-center\{position:absolute/);
 });
-test('current combination is emphasized with fully visible card values',()=>{
- assert.match(ui,/CURRENT COMBINATION/);
- assert.match(ui,/pileType\.toUpperCase\(\)/);
- assert.match(ui,/PER PLAY/);
- assert.match(css,/\.pa-pile-type strong/);
- assert.match(css,/\.pa-table-ring \.pa-face/);
+test('pile type is compactly integrated into Current Pile above readable fanned cards',()=>{
+ assert.match(ui,/pileView\.heading/);
+ assert.match(ui,/className="section-kicker pa-pile-heading"/);
+ assert.match(ui,/className="pa-pile-fan"/);
+ assert.match(css,/\.pa-stack-index\{/);
+ assert.match(css,/\.pa-pile-heading\{/);
+ assert.doesNotMatch(ui,/CURRENT COMBINATION|LATEST PLAY/);
 });
 test('bots use emoji and finishing square uses visible green rank border',()=>{
  assert.match(ui,/aria-label="Bot".*🤖/);

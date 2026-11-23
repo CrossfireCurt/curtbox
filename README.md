@@ -122,7 +122,7 @@ Source of truth is [CrossfireCurt/curtbox](https://github.com/CrossfireCurt/curt
 The optional **Curtbox TV** Android application is in `android-tv/`. It lets Google TV / Android TV and compatible Fire TV devices connect to a host-configured Curtbox server URL, create rooms and display the public presentation. It uses the existing hosted React UI; no game server is bundled in the APK. TV remote D-pad navigation is enabled only inside the TV WebView client. See [`docs/ANDROID_TV.md`](docs/ANDROID_TV.md) for sideloading and build instructions. An [Android TV APK GitHub Actions workflow](https://github.com/CrossfireCurt/curtbox/actions/workflows/android-tv.yml) publishes debug APK artifacts for testing; a version tag also attaches a debug APK. Physical-device QA is still required.
 
 ### President / Asshole pile display
-The public presentation now shows **legible individual cards grouped by each accepted play**, with the latest group first, a **Single / Pair / Triple / Four-of-a-kind** label, and a bounded **Pile History** sidebar identifying who cleared each pile. These display-only fields are never exposed to player phones. Full details: `docs/games/PRESIDENT_ASSHOLE_SPEC.md`.
+The public presentation now shows a **compact, readable card fan** with exposed rank/suit corners, latest-card highlighting, a combined heading (e.g. **CURRENT PILE – PAIRS (2)**), and a bounded **Pile History** sidebar identifying who cleared each pile. These display-only fields are never exposed to player phones. Full details: `docs/games/PRESIDENT_ASSHOLE_SPEC.md`.
 
 ### Presentation and audio preferences
 
