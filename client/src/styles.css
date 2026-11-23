@@ -350,7 +350,7 @@
 
 /* #33: bigger names; rank icon alongside; timer in upper-right without a pill;
    the number of held cards is shown by actual overlapping face-down card backs. */
-.pa-seat{min-height:142px;gap:10px;padding:14px 12px 12px}
+.pa-seat{min-height:142px;gap:10px;padding:10px 12px 12px;justify-content:flex-start}
 .pa-seat-header{display:flex;align-items:center;justify-content:space-between;width:100%;min-width:0;gap:8px}
 .pa-seat-identity{width:auto;flex:1 1 auto;min-width:0;max-width:100%;overflow:hidden}
 .pa-seat-name-row{display:flex;align-items:center;justify-content:flex-start;gap:6px;max-width:100%;min-width:0;width:100%}
@@ -358,6 +358,10 @@
 .pa-seat .pa-seat-player-name{font-weight:850;line-height:1.16;min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pa-seat .pa-seat-player-name .connection-name{max-width:100%}
 .pa-seat .pa-seat-player-name .connection-name-text{max-width:100%;white-space:nowrap}
+/* Old .pa-seat span font sizes override inheritance unless both nested spans
+   explicitly inherit from the player-name element. */
+.pa-seat .pa-seat-player-name .connection-name,
+.pa-seat .pa-seat-player-name .connection-name-text{font-size:inherit;line-height:inherit}
 .pa-seat .pa-seat-rank-icon{font-size:clamp(1.12rem,1.55vw,1.48rem);flex:0 0 auto;display:inline-flex;align-items:center;line-height:1.2;overflow:visible}
 .pa-seat .pa-bot-icon{font-size:clamp(1.05rem,1.5vw,1.35rem);flex:0 0 auto;margin:0;line-height:1.2}
 .pa-seat .pa-seat-timer{position:static;flex:0 0 auto;display:block;padding:0;margin:0;border:0;border-radius:0;background:transparent;box-shadow:none;color:#fff2cc;font-weight:900;font-variant-numeric:tabular-nums;line-height:1.16;text-shadow:0 2px 7px #000a;white-space:nowrap;pointer-events:none}

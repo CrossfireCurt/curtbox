@@ -258,3 +258,6 @@ The **Settings** button is available to presenter hosts during play and opens on
 
 ## Presenter seat header alignment (#37)
 The rank emoji is **to the left of the player name**, with optional bot 🤖 after the name. The active countdown is **right-aligned on the same header row** as the rank/name and uses **exactly the same responsive font size** as the name. The timer remains unboxed, and the name truncates if needed on narrow 4–8-player layouts instead of overlapping the timer. The card-back stack remains below the header. This supersedes the previous absolute-position upper-right timer treatment.
+
+## Presenter seat font inheritance and vertical positioning (#39)
+The name and countdown must look the **same size**, not only have identical CSS rules on their immediate containers. An older `.pa-seat span` style explicitly forced the inner `ConnectionName` spans to 12px, so those spans now inherit the size from `pa-seat-player-name` to match the timer at all breakpoints. Player-seat content is now aligned toward the **top of the square**, reclaiming the previous dead space above the name; the face-down cards remain directly below the common header. Rank emoji remains left of name, timer right, and finished border/card privacy unchanged.

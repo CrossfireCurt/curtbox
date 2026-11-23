@@ -128,3 +128,6 @@ Player-square names must remain large, with previous rank (or current finishing 
 
 ## Presenter player seat header (#37)
 The rank emoji appears **before** the name; optional bot 🤖 appears after. The active countdown is right-aligned in the same flex `pa-seat-header` as the name with an identical responsive font size and no timer border. Do not absolutely position the timer; the name must shrink/ellipsis to preserve timer visibility on narrow seats. Keep the card stack below and preserve finished green borders. Verify `president-seat-presentation.test.mjs`, `president-seat-header.test.mjs`, full CI and Android.
+
+## Presenter name visual parity (#39)
+The seat header's parent `pa-seat-player-name` and `pa-seat-timer` use equal responsive font sizes, **and** both nested `ConnectionName` spans must inherit the name size. The older generic `.pa-seat span` style sets 12px directly; without the higher-specificity `.pa-seat .pa-seat-player-name .connection-name` / `.connection-name-text` rules, the visible name will be smaller than the timer. The seat uses `justify-content:flex-start` and reduced top padding to use empty top space. Keep the shared header, rank-left order, card backs, and compact layouts. Regression tests in `president-seat-header.test.mjs` check cascade and top alignment.
