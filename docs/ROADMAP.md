@@ -57,3 +57,6 @@ The Android TV app was merged via [PR #10](https://github.com/CrossfireCurt/curt
 
 ## Implementation note — issue #2
 Disconnected-player presenter status is implemented via shared `ConnectionName` in both game presentations and verified in static/client checks; full browser reconnect acceptance remains recommended. See [issue #2](https://github.com/CrossfireCurt/curtbox/issues/2).
+
+## Implementation delivery: pile presentation (#4, #5, #13)
+The live pile is grouped into fully visible cards (no overlap); the latest play drives a Single/Pair/Triple/Four-of-a-kind label; and the Host shows bounded per-hand **Pile History** with player attribution. See the linked PR for #4/#5/#13 and the game spec. The next queued independent gameplay work is #6 (same-rank-only selection).

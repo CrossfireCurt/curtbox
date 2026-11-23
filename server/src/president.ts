@@ -3,7 +3,7 @@
 import {randomInt} from 'node:crypto';
 import type {Participant,RoomState} from '../../shared/types.js';
 import {PA_DEFAULT_SETTINGS,PA_DECREE_NAMES} from '../../shared/president.js';
-import type {PACard,PADecreeAction,PADecreeKey,PAExchange,PASettings,PAState,PAPublic,PARank} from '../../shared/president.js';
+import type {PACard,PADecreeAction,PADecreeKey,PAExchange,PASettings,PAState,PAPublic,PARank,PAPilePlay} from '../../shared/president.js';
 
 const RANKS=['3','4','5','6','7','8','9','10','J','Q','K','A','2'];
 const SUITS=['C','D','H','S'];
@@ -40,7 +40,7 @@ export function validatePASettings(value:Partial<PASettings>){
   else if(!safeSeconds(Number(v),k==='consecutiveForDecree'?1:1,k==='consecutiveForDecree'?20:k==='termDuration'?100:300))throw Error(`Invalid ${k}`);
  }
 }
-export function createPA(r:RoomState){r.paSettings={...PA_DEFAULT_SETTINGS};r.pa={stage:'ready',handNumber:0,seats:[],hands:{},active:[],bots:[],ready:[],previousRanks:[],finished:[],handRanks:[],passed:[],pile:[],serial:0,exchange:[],decrees:[],decreeActionsRemaining:0,presidencies:{},streaks:{},longestStreak:{},names:{},departed:[],drinking:{}};}
+export function createPA(r:RoomState){r.paSettings={...PA_DEFAULT_SETTINGS};r.pa={stage:'ready',handNumber:0,seats:[],hands:{},active:[],bots:[],ready:[],previousRanks:[],finished:[],handRanks:[],passed:[],pile:[],pilePlays:[],pileHistory:[],serial:0,exchange:[],decrees:[],decreeActionsRemaining:0,presidencies:{},streaks:{},longestStreak:{},names:{},departed:[],drinking:{}};}
 export function configurePA(r:RoomState,patch:Partial<PASettings>){
  if(!r.paSettings||!r.pa)throw Error('Not a President / Asshole room.');
  validatePASettings(patch);
@@ -101,7 +101,7 @@ function beginHand(r:RoomState,now:number){
   for(const id of [...ranked(g,ids)].reverse().slice(0,extra))deficits[id]++;
   while(cards.length){for(const id of dealOrder)if(deficits[id]>0){hands[id].push(cards.pop()!);deficits[id]--;}}
  }else{let n=0;while(cards.length)hands[dealOrder[n++%dealOrder.length]].push(cards.pop()!);}
- g.handNumber=newHand;g.hands=hands;g.active=ids;g.ready=[];g.finished=[];g.handRanks=[];g.passed=[];g.pile=[];g.pileOwner=undefined;g.pileRank=undefined;g.lastPlay=undefined;g.lastClear=undefined;g.lastSkip=undefined;g.serial++;
+ g.handNumber=newHand;g.hands=hands;g.active=ids;g.ready=[];g.finished=[];g.handRanks=[];g.passed=[];g.pile=[];g.pileOwner=undefined;g.pileRank=undefined;g.lastPlay=undefined;g.lastClear=undefined;g.lastSkip=undefined;g.pilePlays=[];g.pileHistory=[];g.serial++;
  const leader=newHand===1?ids.find(id=>hands[id].includes(s.openingCard)):low;
  chooseLead(g,leader);g.turnEndsAt=now+s.turnSeconds*1000;g.stage='play';g.event=`Hand ${newHand} dealt`;
  g.exchange=[];
@@ -129,18 +129,36 @@ function validateCards(g:PAState,id:string,cards:PACard[]){
  const rank=order(cards[0]);if(rank<0||cards.some(c=>order(c)!==rank))throw Error('All selected cards must have the same rank.');
  return rank;
 }
+/** Keep the last eight cleared piles per hand; each card appears in only one pile.
+ * Legacy persisted rooms may lack pilePlays, so reconstruct the latest play. */
+function pilePlays(g:PAState):PAPilePlay[]{
+ if(g.pilePlays?.length)return g.pilePlays;
+ if(!g.pile.length)return [];
+ if(!g.lastPlay)return [{by:g.pileOwner??'',cards:[...g.pile],serial:g.serial}];
+ const earlier=g.pile.slice(0,-g.lastPlay.count);
+ return [...(earlier.length?[{by:'',cards:earlier,serial:-1}]:[]),{by:g.lastPlay.player,cards:[...g.lastPlay.cards],serial:g.lastPlay.serial}];
+}
+function archivePile(g:PAState,by:string,reason:string,now:number){
+ if(!g.pile.length)return;
+ const serial=++g.serial;
+ const record={by,cards:[...g.pile],plays:pilePlays(g).map(p=>({...p,cards:[...p.cards]})),reason,at:now,serial};
+ g.lastClear={by,cards:[...g.pile],reason,at:now,serial};
+ g.pileHistory=[...(g.pileHistory??[]).slice(-7),record];
+}
 function clear(g:PAState,by:string,reason:string,now:number){
- g.lastClear={by,cards:[...g.pile],reason,at:now,serial:++g.serial};g.pile=[];g.pileOwner=undefined;g.pileRank=undefined;g.passed=[];g.lastPlay=undefined;
+ archivePile(g,by,reason,now);
+ g.pile=[];g.pilePlays=[];g.pileOwner=undefined;g.pileRank=undefined;g.passed=[];g.lastPlay=undefined;
  const s=g.active.includes(by)&&!g.finished.includes(by)?by:nextIn(g,by,g.finished,activeDirection(g));chooseLead(g,s);
 }
 function endHand(r:RoomState,now:number){
  const g=r.pa!,alive=g.active.filter(id=>!g.finished.includes(id));
  if(alive.length>1)return false;
  for(const id of alive)if(!g.finished.includes(id))g.finished.push(id);
+ archivePile(g,g.pileOwner??g.turn??'', 'Hand ended',now);
  const rankedIds=uniq(g.finished).filter(id=>g.names[id]);
  // Players who explicitly left during a hand do not displace finishers.
  const ranks:PARank[]=rankedIds.map((id,i)=>({id,name:g.names[id],position:i+1}));
- g.handRanks=ranks;g.previousRanks=ranks;g.active=[];g.pile=[];g.passed=[];g.turn=undefined;g.turnEndsAt=undefined;
+ g.handRanks=ranks;g.previousRanks=ranks;g.active=[];g.pile=[];g.pilePlays=[];g.passed=[];g.turn=undefined;g.turnEndsAt=undefined;
  const winner=ranks[0]?.id;
  if(winner){g.presidencies[winner]=(g.presidencies[winner]??0)+1;g.streaks[winner]=(g.streaks[winner]??0)+1;g.longestStreak[winner]=Math.max(g.longestStreak[winner]??0,g.streaks[winner]);}
  for(const id of Object.keys(g.streaks))if(id!==winner)g.streaks[id]=0;
@@ -171,7 +189,7 @@ export function playPA(r:RoomState,id:string,cards:PACard[],now=Date.now(),socia
  const special=rank===12||cards.length===4||(has(g,'double_trouble')&&rank===0&&cards.length===2);
  if(!social&&g.pile.length&&!special){if(cards.length!==g.lastPlay?.count)throw Error('Match the number of cards in the latest play.');if(rank<(g.pileRank??-1))throw Error('You must play a higher rank.');}
  const equal=!social&&g.pile.length>0&&rank===g.pileRank;
- g.hands[id]=g.hands[id].filter(c=>!cards.includes(c));g.pile.push(...cards);g.pileOwner=id;g.pileRank=rank;g.lastPlay={player:id,rank,count:cards.length,cards:[...cards],serial:++g.serial};g.passed=[];
+ g.hands[id]=g.hands[id].filter(c=>!cards.includes(c));g.pile.push(...cards);g.pileOwner=id;g.pileRank=rank;g.lastPlay={player:id,rank,count:cards.length,cards:[...cards],serial:++g.serial};(g.pilePlays??=[]).push({by:id,cards:[...cards],serial:g.lastPlay.serial});g.passed=[];
  if(rank===12&&has(g,'drink_twos'))for(const target of g.active)if(target!==id&&!isBot(r,target)&&!g.finished.includes(target))(g.drinking[target]??=[]).push(`${g.names[id]} played a 2 — drink`);
  const ended=finishCards(r,id,now);if(ended)return;
  if(social||special){clear(g,id,social?'Social':'Special clear',now);g.turnEndsAt=now+r.paSettings!.turnSeconds*1000;}
@@ -399,7 +417,10 @@ export function publicPA(r:RoomState,me:Participant):PAPublic|undefined{
  const exchange=g.exchange.find(e=>e.upper===myId);
  return {stage:g.stage,handNumber:g.handNumber,seats:seats.map(id=>({id,name:g.names[id]??player(r,id)?.name??'Player',cards:g.hands[id]?.length??0,position:g.previousRanks.find(x=>x.id===id)?.position,online:player(r,id)?.online??false,ready:isBot(r,id)||g.ready.includes(id),bot:isBot(r,id),nextHand:g.stage!=='ready'&&!g.active.includes(id)})),
   currentPlayerId:g.turn,turnEndsAt:g.turnEndsAt,stageEndsAt:g.stageEndsAt,
-  pile:host?[...g.pile]:undefined,pileOwner:host?g.pileOwner:undefined,lastClear:host?g.lastClear:undefined,lastSkip:g.lastSkip,event:g.event,
+  pile:host?[...g.pile]:undefined,pileOwner:host?g.pileOwner:undefined,
+  pilePlays:host?pilePlays(g).map(p=>({...p,cards:[...p.cards]})):undefined,
+  pileHistory:host?(g.pileHistory??[]).map(h=>({...h,cards:[...h.cards],plays:h.plays.map(p=>({...p,cards:[...p.cards]}))})):undefined,
+  lastClear:host?g.lastClear:undefined,lastSkip:g.lastSkip,event:g.event,
   activeDecrees:g.decrees,handRanks:g.handRanks,previousRanks:g.previousRanks,
   myHand:!host?[...(g.hands[myId]??[])].sort((a,b)=>order(a)-order(b)):undefined,myReady:g.ready.includes(myId),inHand:g.active.includes(myId),myFinished:g.finished.includes(myId),
   myExchange:!host&&exchange?{count:exchange.count,original:exchange.original,selected:exchange.selected}:undefined,

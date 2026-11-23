@@ -191,3 +191,11 @@ This is a requirement queue, **not a description of deployed behavior**. Impleme
 - [#14](https://github.com/CrossfireCurt/curtbox/issues/14): Keep valid preselected cards while waiting and when the player's turn activates; don't clear selection on `game.currentPlayerId` changes. Reset only on appropriate ownership, hand or phase transitions and successful submission.
 
 Coordinate #11's skipped cue with [#3](https://github.com/CrossfireCurt/curtbox/issues/3), which changes ordinary equal-rank plays to skips but leaves Social as a clear. Coordinate #13 with presentation legibility [#4](https://github.com/CrossfireCurt/curtbox/issues/4) and cleared pile history [#5](https://github.com/CrossfireCurt/curtbox/issues/5).
+
+## Readable pile, last-play combination and cleared-pile history (issues #4, #5, #13)
+
+On the **Host presentation**, each accepted play is grouped with all its card faces **fully visible** instead of being rendered as overlapped absolute-position cards. Newest groups appear first; the row can scroll horizontally for unusually long piles. A prominent label shows the combination of the **latest accepted play** (Single, Pair, Triple, Four-of-a-kind), not the total accumulated pile length. When the pile is empty the label becomes **New lead**.
+
+The **Pile History** sidebar shows the most recent cleared piles in the current hand in reverse chronological order. Each record says e.g. `Curt cleared`, gives a clear reason and shows all cards involved. Clear causes include Social, special cards, everyone passing, a player leaving and hand completion. The engine stores at most **eight cleared piles per hand** in persisted authoritative state; the next hand resets the history. This keeps old rooms bounded. For compatibility, a legacy room with an existing ungrouped pile reconstructs the latest known play while treating earlier ungrouped cards as a single group.
+
+The public `PAPublic.pilePlays` and `PAPublic.pileHistory` fields are **Host-only**; no private cards or pile renderings are sent to players' phones. Regression tests cover normal accumulated pairs, special clears, Social, owner attribution, size bounds, per-hand reset and privacy. Physical TV readability remains a manual QA item.

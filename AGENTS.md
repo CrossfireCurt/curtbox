@@ -77,3 +77,6 @@ Source audit confirmed the Host currently has a **global** countdown but none in
 
 ## Connection indicator implementation (#2)
 Both Host presenter views use `client/src/ConnectionName.tsx` for TV-visible disconnected human-player indicators (Survey Show public participant `online`; President / Asshole public seat `online`). Never show the warning for bots. Render without leaking hidden cards or mixing Host/Player surfaces. See `client/tests/connection-indicators.test.mjs`.
+
+## Pile visualization, history and combination label (#4, #5, #13)
+`PAState.pilePlays` stores chronological accepted plays in the current pile, `PAState.pileHistory` stores the last eight clear records per hand; both reset on next deal. Each record owns copies of the card values and player ID, and only Host public views receive them. The Host renders latest play first with distinct readable cards and shows history e.g. "Curt cleared". The current combination label is based on latest **play count**, not accumulated pile length. Server unit and `client/tests/pile-presentation.test.mjs` check these features. Preserve privacy and bounded persistence.
