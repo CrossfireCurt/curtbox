@@ -646,3 +646,22 @@ test('Socials in President mode never prompt; four 2s do not double prompt in As
  assert.equal(g.lastClear?.reason,'Social');
  for(const p of r.participants)assert.equal(g.drinking[p.id]?.length,1);
 });
+
+test('server reports finishing positions and legal play information without sending pile cards to phones',()=>{
+ const r=fixture(),g=r.pa!;for(let i=1;i<=4;i++)readyPA(r,`p${i}`,true,1000);
+ const host=publicPA(r,{id:'host',role:'host'} as Participant)!;
+ const playerId=g.turn!,phone=publicPA(r,r.participants.find(p=>p.id===playerId)!)!;
+ assert.equal(host.handPlayerCount,4);assert.equal(host.playRule,undefined);
+ assert.equal(phone.playRule?.empty,true);
+ assert.equal(phone.playRule?.openingCard,'4C');
+ assert.equal(phone.pile,undefined);
+ g.finished.push('p1');g.hands.p1=[];g.turn='p2';
+ const p1=publicPA(r,r.participants[0])!;
+ assert.equal(p1.myFinishPosition,1);
+ assert.equal(p1.seats.find(p=>p.id==='p1')?.finishedPosition,1);
+ assert.equal(p1.playRule,undefined,'finished players cannot play');
+ const p2=publicPA(r,r.participants[1])!;
+ assert.equal(p2.playRule?.empty,true);
+ g.finished.push('p2');g.hands.p2=[];
+ assert.equal(publicPA(r,{id:'host',role:'host'} as Participant)!.seats.find(p=>p.id==='p2')?.finishedPosition,2);
+});
