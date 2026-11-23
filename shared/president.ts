@@ -68,7 +68,7 @@ export interface PAPublic {
   handPlayerCount:number;myFinishPosition?:number;
   /** Phone-only combination requirement; never exposes public pile cards or opponents' hands. */
   playRule?:{empty:boolean;rank?:string;count:number;openingCard?:PACard;doubleTrouble:boolean};
-  currentPlayerId?:string;turnEndsAt?:number;stageEndsAt?:number;finaleStartedAt?:number;pile?:PACard[];pileOwner?:string;
+  currentPlayerId?:string;turnEndsAt?:number;stageEndsAt?:number;finaleStartedAt?:number;finaleIsGameOver?:boolean;pile?:PACard[];pileOwner?:string;
   pilePlays?:PAPilePlay[];pileHistory?:PAClearedPile[];
   lastClear?:PAState['lastClear'];lastSkip?:PAState['lastSkip'];lastPass?:PAState['lastPass'];
   /** Presenter card sound event and private affected-player drink cue. */
