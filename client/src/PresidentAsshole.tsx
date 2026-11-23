@@ -38,7 +38,7 @@ function HandResults({game,asshole}:{game:PAPublic;asshole:boolean}){
    const stats=game.handStats[p.id];
    return <div className={'pa-result-row'+(p.position===1?' is-president':'')} key={p.id}>
     <div className="pa-result-heading">
-     <strong className="pa-result-title">{rankTitle(p.position,n,asshole)}</strong>
+     <strong className="pa-result-title"><span className="pa-result-emblem" aria-hidden="true">{rankIcon(p.position,n,asshole)}</span> {rankTitle(p.position,n,asshole)}</strong>
      <span className="pa-result-name"><ConnectionName name={p.name} offline={!!seat&&!seat.online} bot={!!seat?.bot}/>{seat?.bot?' 🤖':''}{!seat?' · Left table':''}</span>
     </div>
     <div className="pa-result-stats">
@@ -112,6 +112,10 @@ export function PresidentAsshole({view,now,offset,onAction}:Props){
  const pileGroups=[...(game.pilePlays??[])].reverse(); // newest play first
  const pileType=({1:'Single',2:'Pair',3:'Triple',4:'Four-of-a-kind'} as Record<number,string>)[pileGroups[0]?.cards.length??0]??'New lead';
  const clearedHistory=[...(game.pileHistory??[])].reverse();
+ // Between-hand results temporarily replace (rather than sit below) the table.
+ // The server's ready/ended stage controls this transition, not a client timer.
+ const resultsTakeover=game.handRanks.length>0&&(game.stage==='ready'||game.stage==='ended');
+ const readyPlayers=game.seats.filter(p=>p.ready).length;
  const recentClear=game.lastClear&&now-offset>=game.lastClear.at-500&&now-offset<game.lastClear.at+2400?game.lastClear:undefined;
  // The server owns skipped-player identity and timestamp; repeated room:view
  // snapshots do not restart the short animation.
@@ -120,8 +124,15 @@ export function PresidentAsshole({view,now,offset,onAction}:Props){
   ?game.lastSkip:undefined;
  const scoreboard=[...Object.entries(game.presidencies)].sort((a,b)=>b[1]-a[1]||(game.longestStreak[b[0]]??0)-(game.longestStreak[a[0]]??0));
  return host?<section className="pa-stage" aria-label="President / Asshole public presentation">
-  <div className="pa-stage-head"><div><div className="section-kicker">{s.mode==='asshole'?'ASSHOLE':'PRESIDENT'} · HAND {game.handNumber||'—'}</div><h1>{game.stage==='ready'?'Ready for the next hand':game.stage==='exchange'?'Card exchange':game.stage==='decree'?'Presidential decrees':game.stage==='vote'?'Democracy in session':game.stage==='ended'?'Game ended':'Cards on the table'}</h1></div><div className="pa-clock">{formatLeft(game.stage==='play'?game.turnEndsAt:game.stageEndsAt,now,offset)}</div><button type="button" className="btn btn-small pa-sound-toggle" onClick={sounds.toggle} aria-pressed={sounds.enabled}>{sounds.enabled?'🔊 Sounds on':'🔇 Sounds off'}</button></div>
-  <div className="pa-stage-columns"><div className="pa-table"><div className="pa-table-ring">
+  <div className="pa-stage-head"><div><div className="section-kicker">{s.mode==='asshole'?'ASSHOLE':'PRESIDENT'} · HAND {game.handNumber||'—'}</div><h1>{resultsTakeover?'Last hand results':game.stage==='ready'?'Ready for the next hand':game.stage==='exchange'?'Card exchange':game.stage==='decree'?'Presidential decrees':game.stage==='vote'?'Democracy in session':game.stage==='ended'?'Game ended':'Cards on the table'}</h1></div><div className="pa-clock">{formatLeft(game.stage==='play'?game.turnEndsAt:game.stageEndsAt,now,offset)}</div><button type="button" className="btn btn-small pa-sound-toggle" onClick={sounds.toggle} aria-pressed={sounds.enabled}>{sounds.enabled?'🔊 Sounds on':'🔇 Sounds off'}</button></div>
+  {resultsTakeover?<section className="pa-results-screen" aria-label="Last hand statistics">
+   <div className="pa-results-banner">
+    <div><div className="section-kicker">HAND {game.handNumber} COMPLETE</div><h2>Last hand</h2><p>Rankings and highlights from the completed hand</p></div>
+    {game.stage==='ready'?<div className="pa-results-ready"><strong>{readyPlayers} / {game.seats.length} ready</strong><span>Waiting for everyone to ready up for the next hand</span></div>:<div className="pa-results-ready"><strong>Game finished</strong><span>Final hand results</span></div>}
+   </div>
+   <HandResults game={game} asshole={s.mode==='asshole'}/>
+   <div className="pa-results-footer">Join at room <strong>{roomCode}</strong> · The table returns when the next hand begins</div>
+  </section>:<div className="pa-stage-columns"><div className="pa-table"><div className="pa-table-ring">
    <div className="pa-people" aria-label="Players arranged around the pile">
     {game.seats.map((p,i)=>{
      const angle=2*Math.PI*i/Math.max(1,game.seats.length)-Math.PI/2;
@@ -147,8 +158,7 @@ export function PresidentAsshole({view,now,offset,onAction}:Props){
       {pileGroups.length?pileGroups.map((play,i)=><div className={'pa-play-group'+(i===0?' latest':'')} key={play.serial+'-'+i}><small>{i===0?'LATEST PLAY':'EARLIER PLAY'}{play.by?' · '+(game.names[play.by]??'Player'):''}</small><div className="pa-pile-cards">{play.cards.map(c=><span className={`pa-face ${isRed(c)?'pa-red':''}`} key={c}>{label(c)}</span>)}</div></div>):<div className="pa-pile-empty">Empty pile · new lead</div>}
     </div><div className="pa-caption">{game.currentPlayerId?`${game.seats.find(p=>p.id===game.currentPlayerId)?.name??'Player'}'s turn`:''}</div>{recentClear&&<div key={recentClear.serial} className="pa-clear-notice">{recentClear.reason} — pile cleared</div>}</>:<p className="pa-wait-message">{game.event??'Waiting for players'}</p>}
    </div></div>
-   {game.handRanks.length>0&&<div className="pa-ranking"><h2>Last hand</h2><HandResults game={game} asshole={s.mode==='asshole'}/></div>}
-  </div><aside className="pa-aside"><div className="panel"><div className="section-kicker">ROOM CODE</div><h2>{roomCode}</h2><p>Join on your phone to play. {s.botCount>0?`${s.botCount} bot${s.botCount===1?'':'s'} at this table.`:''}</p></div><div className="panel pa-pile-history"><div className="section-kicker">PILE HISTORY</div><h3>Cleared this hand</h3>{clearedHistory.length?<ol className="pa-history-list">{clearedHistory.map(entry=><li key={entry.serial}><strong>{game.names[entry.by]??'Player'} cleared</strong><small>{entry.reason} · {entry.cards.length} cards</small><div className="pa-history-cards">{entry.cards.map((c,i)=><span className={`pa-history-card ${isRed(c)?'pa-red':''}`} key={c+'-'+i}>{label(c)}</span>)}</div></li>)}</ol>:<p className="helper">No piles cleared yet.</p>}</div><div className="panel"><h3>Presidencies</h3>{scoreboard.length?scoreboard.map(([id,n])=><div className="pa-score" key={id}><span><ConnectionName name={game.names[id]??id.slice(0,6)} offline={game.seats.some(s=>s.id===id&&!s.online)} bot={game.seats.some(s=>s.id===id&&s.bot)}/></span><strong>{n}</strong></div>):<p>Scores appear after the first hand.</p>}</div><div className="panel"><h3>Active decrees</h3>{game.activeDecrees.length?game.activeDecrees.map(d=><div className="pa-decree" key={d.key}>{PA_DECREE_NAMES[d.key]} {d.value??''}{d.expiresBefore!==undefined?<small>expires before hand {d.expiresBefore}</small>:null}</div>):<p>No decrees in effect.</p>}</div></aside></div>
+  </div><aside className="pa-aside"><div className="panel"><div className="section-kicker">ROOM CODE</div><h2>{roomCode}</h2><p>Join on your phone to play. {s.botCount>0?`${s.botCount} bot${s.botCount===1?'':'s'} at this table.`:''}</p></div><div className="panel pa-pile-history"><div className="section-kicker">PILE HISTORY</div><h3>Cleared this hand</h3>{clearedHistory.length?<ol className="pa-history-list">{clearedHistory.map(entry=><li key={entry.serial}><strong>{game.names[entry.by]??'Player'} cleared</strong><small>{entry.reason} · {entry.cards.length} cards</small><div className="pa-history-cards">{entry.cards.map((c,i)=><span className={`pa-history-card ${isRed(c)?'pa-red':''}`} key={c+'-'+i}>{label(c)}</span>)}</div></li>)}</ol>:<p className="helper">No piles cleared yet.</p>}</div><div className="panel"><h3>Presidencies</h3>{scoreboard.length?scoreboard.map(([id,n])=><div className="pa-score" key={id}><span><ConnectionName name={game.names[id]??id.slice(0,6)} offline={game.seats.some(s=>s.id===id&&!s.online)} bot={game.seats.some(s=>s.id===id&&s.bot)}/></span><strong>{n}</strong></div>):<p>Scores appear after the first hand.</p>}</div><div className="panel"><h3>Active decrees</h3>{game.activeDecrees.length?game.activeDecrees.map(d=><div className="pa-decree" key={d.key}>{PA_DECREE_NAMES[d.key]} {d.value??''}{d.expiresBefore!==undefined?<small>expires before hand {d.expiresBefore}</small>:null}</div>):<p>No decrees in effect.</p>}</div></aside></div>}
  </section>:<section className="pa-phone">
   <button type="button" className="btn btn-small pa-sound-toggle" onClick={sounds.toggle} aria-pressed={sounds.enabled}>{sounds.enabled?'🔊 Sounds on':'🔇 Sounds off'}</button>
   {activeSkip?.skipped===view.me.id&&<div key={activeSkip.serial} className="pa-skipped-phone" role="status">⏭ SKIPPED — your turn was bypassed</div>}
