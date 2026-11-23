@@ -64,3 +64,6 @@ The live pile is grouped into fully visible cards (no overlap); the latest play 
 ## Implemented card selection: issues #6 and #14
 
 The player card picker now preserves valid preselection across turn-owner changes and restricts Play/Social selection to one rank at a time (a different-rank tap switches selection). Mixed-rank Card Exchange returns remain valid. Selection resets on a new hand, stage/identity change, or successful submission; the UI filters out no-longer-owned cards. Covered by the helper's direct tests and UI regression checks. Manual phone/touch QA remains recommended.
+
+## Bot reaction delay implementation — issue #7
+Normal bot plays now wait 1.8–3.6 seconds; bot Social waits 2.4–4.8 seconds with no automatic immediate Social win. The scheduled time persists in room state and invalidates when a new pile play closes Social. Very short host turn timers cap normal delays. Deterministic engine tests cover range endpoints, no rerolls, timeout cap and Social cancellation; physical multiplayer QA is recommended.

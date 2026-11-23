@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createPA,configurePA,botDuePA,repairPAController,readyPA,playPA,passPA,exchangePA,decreePA,votePA,advancePA,departPA,publicPA} from '../src/president.js';
+import {createPA,configurePA,botDelayPA,botDuePA,repairPAController,readyPA,playPA,passPA,exchangePA,decreePA,votePA,advancePA,departPA,publicPA} from '../src/president.js';
 import type {RoomState,Participant} from '../../shared/types.js';
 import {createParticipant} from '../src/core.js';
 
@@ -301,7 +301,7 @@ test('bots act on a short server timer without needing a socket or client',()=>{
  assert.equal(g.hands[bot].length,13);
  assert.ok(g.botActionAt!>2000);
  assert.equal(botDuePA(r,2200),false);
- advancePA(r,2850);
+ advancePA(r,g.botActionAt!+350);
  assert.equal(g.hands[bot].length<13,true);
  assert.equal(g.pileOwner===bot||g.lastClear?.by===bot,true);
 });
@@ -352,7 +352,7 @@ test('bots are eligible to complete Social from their private hand',()=>{
  g.lastClear={by:'p1',cards:[],reason:'fixture',at:990,serial:1};g.pile=[];
  playPA(r,'p1',['7C'],1100);
  assert.equal(botDuePA(r,1200),true);
- advancePA(r,1200);advancePA(r,1700);
+ advancePA(r,1200,()=>0);advancePA(r,g.botActionAt!+1);
  assert.equal(g.lastClear?.reason,'Social');assert.deepEqual(g.hands[bot],['10C']);
 });
 
@@ -446,4 +446,56 @@ test('Social clear archives one event; cleared pile history is bounded at eight 
   g.turn='p1';g.hands.p1=['2H','KC'];playPA(r,'p1',['2H'],2002+i);
  }
  assert.equal(g.pileHistory?.length,8);
+});
+
+test('bot play and Social have separate randomized delay windows',()=>{
+ assert.equal(botDelayPA('play',()=>0),1800);
+ assert.equal(botDelayPA('play',()=>1),3600);
+ assert.equal(botDelayPA('social',()=>0),2400);
+ assert.equal(botDelayPA('social',()=>1),4800);
+ assert.ok(botDelayPA('social',()=>.6)>botDelayPA('social',()=>.1));
+});
+
+test('bot does not act before its persisted deadline or reroll on ticks',()=>{
+ const r=fixture();r.participants=r.participants.slice(0,1);
+ configurePA(r,{botCount:3});readyPA(r,'p1',true,1000);
+ const g=r.pa!,bot=g.bots[0].id;g.turn=bot;g.lastClear={by:bot,cards:[],reason:'fixture',at:0,serial:0};
+ g.pile=[];g.lastPlay=undefined;g.turnEndsAt=10000;g.botActionKey=undefined;g.botActionAt=undefined;
+ const before=g.hands[bot].length;
+ advancePA(r,2000,()=>1);
+ assert.equal(g.botActionAt,5600);
+ assert.equal(botDuePA(r,5599),false);
+ advancePA(r,5599,()=>0);
+ assert.equal(g.botActionAt,5600);
+ assert.equal(g.hands[bot].length,before);
+ advancePA(r,5600);
+ assert.ok(g.hands[bot].length<before);
+});
+
+test('bot turn wait is shortened for a two-second host turn timer',()=>{
+ const r=fixture();r.participants=r.participants.slice(0,1);
+ configurePA(r,{botCount:3,turnSeconds:2});readyPA(r,'p1',true,1000);
+ const g=r.pa!,bot=g.bots[0].id;g.turn=bot;g.lastClear={by:bot,cards:[],reason:'fixture',at:0,serial:0};
+ g.pile=[];g.lastPlay=undefined;g.turnEndsAt=4000;g.botActionKey=undefined;g.botActionAt=undefined;
+ advancePA(r,2000,()=>1);
+ assert.equal(g.botActionAt,3550);
+ const before=g.hands[bot].length;advancePA(r,3550);
+ assert.ok(g.hands[bot].length<before);
+});
+
+test('bot Social waits and cancels if human next player acts before deadline',()=>{
+ const r=fixture();r.participants=r.participants.slice(0,2);
+ configurePA(r,{botCount:2});r.paSettings!.social=true;
+ readyPA(r,'p1',true,1000);readyPA(r,'p2',true,1000);
+ const g=r.pa!,bot=g.bots[0].id;
+ g.turn='p1';g.lastClear={by:'p1',cards:[],reason:'fixture',at:0,serial:0};
+ g.pile=[];g.lastPlay=undefined;g.hands.p1=['7C','8H','KC'];g.hands.p2=['8C','9S','KD'];g.hands[bot]=['7D','7H','7S','10C'];
+ playPA(r,'p1',['7C'],1100);
+ advancePA(r,1200,()=>0);
+ assert.equal(g.botActionAt,3600,'Social has a 2.4-second minimum wait');
+ advancePA(r,3599);assert.notEqual(g.lastClear?.reason,'Social');
+ playPA(r,'p2',['8C'],2000);
+ advancePA(r,3950);
+ assert.notEqual(g.lastClear?.reason,'Social');
+ assert.ok(g.hands[bot].includes('7D'));
 });

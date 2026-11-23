@@ -87,3 +87,6 @@ After CI passes and a PR is merged into `main`, **delete its feature branch**, i
 
 ## Selection implementation (#6, #14)
 `client/src/presidentSelection.ts` contains the pure rank-aware card toggle and available-card filtering. Use **single-rank** mode for normal Play/Social and **mixed-rank** mode for Card Exchange. The React component clears selection on hand, stage and participant identity changes, **not current turn-owner changes**; that distinction allows preselection before one's turn. After the server reports success it clears, but failed actions preserve selection. Test with `client/tests/president-selection.test.mjs`, which runs through `npm run test:pure`. Do not move this rule into a server-only shortcut; the server still enforces legality.
+
+## Bot action delays (#7)
+`server/src/president.ts` exports `botDelayPA(kind,rng)`, sampling once for a fresh task; play 1800–3600 ms and Social 2400–4800 ms. `advancePA` persists chosen `botActionAt` and reuses it on subsequent ticks. A Social task is keyed to `lastPlay.serial` so a newer play cancels its eligibility. Clamp ordinary plays to host-configured short turn deadlines. Run `server/tests/president.test.ts` and test with live phone Social races before changing the timing windows.

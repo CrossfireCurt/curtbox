@@ -237,3 +237,6 @@ The President / Asshole server records each accepted play as `PAPilePlay` in `g.
 
 ## Waiting-to-play selection UX (#6, #14)
 The pure `client/src/presidentSelection.ts` helper switches a Play/Social selection to a new rank when tapped, avoiding multi-rank submission; it permits mixed-rank exchange returns. The component calls `availableCardSelection` before rendering/sending; phase, hand, and participant changes clear selection but turn ownership changes do not. This ensures a preselected pair survives another player's turn and becomes playable when this client is active. On a successful game action selection clears, but it remains for corrections after server errors. Static and executable helper tests are in `client/tests/president-selection.test.mjs`.
+
+## Randomized bot turn and Social wait (issue #7)
+`botDelayPA(kind,random)` samples once per new bot action key: normal play 1800–3600 ms, Social 2400–4800 ms. `advancePA(r,now,random)` stores the deadline under `g.botActionAt` for persistence and never resamples while a task is pending. Short host turn timers cap the normal delay before the turn expiry. The Social key embeds `lastPlay.serial` and is replaced if another player acts. Existing per-room locking and validators remain authoritative.

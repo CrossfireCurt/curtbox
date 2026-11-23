@@ -293,9 +293,17 @@ export function departPA(r:RoomState,id:string,now=Date.now()){
  if(g.stage==='decree'&&g.pendingPresident===id)afterDecision(r);
  if(g.stage==='vote'&&g.vote?.tieIndices&&g.pendingPresident===id){const ties=g.vote.tieIndices;apply(r,g.vote.proposals[ties[randomInt(ties.length)]]);afterDecision(r);}
 }
+/** Sample once at scheduling time and persist the resulting botActionAt. */
+export function botDelayPA(kind:'play'|'social',random:()=>number=Math.random){
+ const min=kind==='social'?2400:1800;
+ const max=kind==='social'?4800:3600;
+ const sample=Number(random());
+ const unit=Number.isFinite(sample)?Math.max(0,Math.min(.999999,sample)):0;
+ return min+Math.floor((max-min+1)*unit);
+}
 /** Find one autonomous bot action. A single delayed action runs per DB transaction.
  * This keeps bot play observable and prevents unbounded AI loops after restarts. */
-function botTask(r:RoomState):{key:string;delay:number;run:(now:number)=>void}|undefined{
+function botTask(r:RoomState):{key:string;delay:number;kind?:'play'|'social';run:(now:number)=>void}|undefined{
  const g=r.pa;if(!g||!(g.bots??[]).length)return;
  if(g.stage==='play'){
   if(r.paSettings!.social&&g.lastPlay&&g.lastPlay.rank!==12){
@@ -305,13 +313,13 @@ function botTask(r:RoomState):{key:string;delay:number;run:(now:number)=>void}|u
     const matching=(g.hands[b.id]??[]).filter(c=>order(c)===last.rank);
     if(matching.length>=4-last.count){
      const cards=matching.slice(0,4-last.count);
-     return {key:`social:${last.serial}:${b.id}`,delay:500,run:now=>playPA(r,b.id,cards,now,true,true)};
+     return {key:`social:${last.serial}:${b.id}`,delay:2400,kind:'social',run:now=>playPA(r,b.id,cards,now,true,true)};
     }
    }
   }
   if(g.turn&&isBot(r,g.turn)){
    const id=g.turn;
-   return {key:`play:${id}:${g.serial}`,delay:850,run:now=>{
+   return {key:`play:${id}:${g.serial}`,delay:1800,kind:'play',run:now=>{
     const cards=botPlay(r,id);
     if(cards)playPA(r,id,cards,now,false,true);
     else if(g.pile.length)passPA(r,id,now,false);
@@ -380,7 +388,7 @@ function botPlay(r:RoomState,id:string):PACard[]|undefined{
  if(groups[12].length)return groups[12].slice(0,1);
  return;
 }
-export function advancePA(r:RoomState,now=Date.now()){
+export function advancePA(r:RoomState,now=Date.now(),random:()=>number=Math.random){
  const g=r.pa;if(!g)return;repairPAController(r,now);maybeStart(r,now);
  // Multiple phase boundaries may be overdue after restart; bounded for safety.
  for(let n=0;n<10;n++){
@@ -397,7 +405,13 @@ export function advancePA(r:RoomState,now=Date.now()){
   }
   const task=botTask(r);
   if(!task){g.botActionKey=undefined;g.botActionAt=undefined;break;}
-  if(g.botActionKey!==task.key||g.botActionAt===undefined){g.botActionKey=task.key;g.botActionAt=now+task.delay;break;}
+  if(g.botActionKey!==task.key||g.botActionAt===undefined){
+    let delay=task.kind?botDelayPA(task.kind,random):task.delay;
+    // Very short host turn timers must still give bots time before timeout.
+    if(task.kind==='play'&&g.turnEndsAt!==undefined)
+      delay=Math.min(delay,Math.max(350,g.turnEndsAt-now-450));
+    g.botActionKey=task.key;g.botActionAt=now+delay;break;
+   }
   if(g.botActionAt>now)break;
   g.botActionKey=undefined;g.botActionAt=undefined;
   task.run(now);
