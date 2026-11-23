@@ -28,7 +28,7 @@ test('three cards render three overlapping backs rather than a text count',()=>{
  assert.match(ui,/role="img" aria-label=\{\x60\$\{layout\.count\}/);
  assert.doesNotMatch(ui,/\x60\$\{p\.cards\} cards\x60/);
 });
-test('rank emoji is positioned beside larger player name; current finishing rank wins',()=>{
+test('rank emoji is before player name; current finishing rank wins',()=>{
  assert.match(ui,/const rankPosition=finish\?\?p\.position/);
  assert.match(ui,/const rankTotal=finish\?game\.handPlayerCount:rankCount/);
  assert.match(ui,/className="pa-seat-name-row"/);
@@ -38,13 +38,16 @@ test('rank emoji is positioned beside larger player name; current finishing rank
  assert.match(ui,/aria-label=\{seatRank\}/);
  assert.doesNotMatch(ui,/p\.position&&!finish&&<small>\{rankTitle/);
  assert.match(ui,/aria-label="Bot"/);
- assert.match(css,/\.pa-seat \.pa-seat-player-name\{font-size:clamp\(1\.12rem/);
+ assert.match(css,/\.pa-seat \.pa-seat-player-name,\.pa-seat \.pa-seat-timer\{font-size:clamp\(1\.12rem/);
 });
-test('turn timer is large, unboxed, top-right, server-timed and visible only on turn',()=>{
+test('turn timer aligns in the same row and font size as name, unboxed and server-timed',()=>{
  assert.match(ui,/game\.stage==='play'&&game\.currentPlayerId===p\.id/);
  assert.match(ui,/role="timer"/);
  assert.match(ui,/\{formatLeft\(game\.turnEndsAt,now,offset\)\}/);
- assert.match(css,/\.pa-seat \.pa-seat-timer\{position:absolute;top:8px;right:11px/);
+ assert.match(ui,/className="pa-seat-header"/);
+ assert.match(css,/\.pa-seat-header\{display:flex;align-items:center;justify-content:space-between/);
+ assert.match(css,/\.pa-seat \.pa-seat-timer\{position:static;flex:0 0 auto/);
+ assert.match(css,/\.pa-seat \.pa-seat-player-name,\.pa-seat \.pa-seat-timer\{font-size:clamp\(1\.12rem/);
  assert.match(css,/\.pa-seat \.pa-seat-timer\{[^}]*border:0/);
  assert.match(css,/\.pa-seat \.pa-seat-timer\.is-low\{/);
 });
