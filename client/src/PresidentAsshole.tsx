@@ -1,6 +1,6 @@
 import {useEffect,useState} from 'react';
 import {ConnectionName} from './ConnectionName';
-import {usePresidentSounds} from './presidentAudio';
+import {usePresidentSounds,usePresidentMusic} from './presidentAudio';
 import {toggleCardSelection,availableCardSelection,presidentPlayButtonMode} from './presidentSelection';
 import {playableCardRanks,validPresidentSelection} from './presidentCardLegality';
 import type {RoomView} from '../../shared/types';
@@ -86,6 +86,7 @@ export function PASettingsEditor({settings,onChange}:{settings:PASettings;onChan
 export function PresidentAsshole({view,now,offset,onAction}:Props){
  const game=view.pa,s=view.paSettings;
  const sounds=usePresidentSounds(view,now,offset);
+ const music=usePresidentMusic(view);
  const vote=game?.vote;
  const [selected,setSelected]=useState<PACard[]>([]);
  const [nominees,setNominees]=useState<string[]>([]);
@@ -124,7 +125,10 @@ export function PresidentAsshole({view,now,offset,onAction}:Props){
   ?game.lastSkip:undefined;
  const scoreboard=[...Object.entries(game.presidencies)].sort((a,b)=>b[1]-a[1]||(game.longestStreak[b[0]]??0)-(game.longestStreak[a[0]]??0));
  return host?<section className="pa-stage" aria-label="President / Asshole public presentation">
-  <div className="pa-stage-head"><div><div className="section-kicker">{s.mode==='asshole'?'ASSHOLE':'PRESIDENT'} · HAND {game.handNumber||'—'}</div><h1>{resultsTakeover?'Last hand results':game.stage==='ready'?'Ready for the next hand':game.stage==='exchange'?'Card exchange':game.stage==='decree'?'Presidential decrees':game.stage==='vote'?'Democracy in session':game.stage==='ended'?'Game ended':'Cards on the table'}</h1></div><div className="pa-clock">{formatLeft(game.stage==='play'?game.turnEndsAt:game.stageEndsAt,now,offset)}</div><button type="button" className="btn btn-small pa-sound-toggle" onClick={sounds.toggle} aria-pressed={sounds.enabled}>{sounds.enabled?'🔊 Sounds on':'🔇 Sounds off'}</button></div>
+  <div className="pa-stage-head"><div><div className="section-kicker">{s.mode==='asshole'?'ASSHOLE':'PRESIDENT'} · HAND {game.handNumber||'—'}</div><h1>{resultsTakeover?'Last hand results':game.stage==='ready'?'Ready for the next hand':game.stage==='exchange'?'Card exchange':game.stage==='decree'?'Presidential decrees':game.stage==='vote'?'Democracy in session':game.stage==='ended'?'Game ended':'Cards on the table'}</h1></div><div className="pa-clock">{formatLeft(game.stage==='play'?game.turnEndsAt:game.stageEndsAt,now,offset)}</div><div className="pa-audio-controls">
+   <button type="button" className="btn btn-small pa-sound-toggle" onClick={music.toggle} aria-label="Toggle music" aria-pressed={music.enabled}>{music.enabled?'🎵 Music on':'🎵 Music off'}</button>
+   <button type="button" className="btn btn-small pa-sound-toggle" onClick={sounds.toggle} aria-label="Toggle sound effects" aria-pressed={sounds.enabled}>{sounds.enabled?'🔊 Effects on':'🔇 Effects off'}</button>
+  </div></div>
   {resultsTakeover?<section className="pa-results-screen" aria-label="Last hand statistics">
    <div className="pa-results-banner">
     <div><div className="section-kicker">HAND {game.handNumber} COMPLETE</div><h2>Last hand</h2><p>Rankings and highlights from the completed hand</p></div>
@@ -160,7 +164,7 @@ export function PresidentAsshole({view,now,offset,onAction}:Props){
    </div></div>
   </div><aside className="pa-aside"><div className="panel"><div className="section-kicker">ROOM CODE</div><h2>{roomCode}</h2><p>Join on your phone to play. {s.botCount>0?`${s.botCount} bot${s.botCount===1?'':'s'} at this table.`:''}</p></div><div className="panel pa-pile-history"><div className="section-kicker">PILE HISTORY</div><h3>Cleared this hand</h3>{clearedHistory.length?<ol className="pa-history-list">{clearedHistory.map(entry=><li key={entry.serial}><strong>{game.names[entry.by]??'Player'} cleared</strong><small>{entry.reason} · {entry.cards.length} cards</small><div className="pa-history-cards">{entry.cards.map((c,i)=><span className={`pa-history-card ${isRed(c)?'pa-red':''}`} key={c+'-'+i}>{label(c)}</span>)}</div></li>)}</ol>:<p className="helper">No piles cleared yet.</p>}</div><div className="panel"><h3>Presidencies</h3>{scoreboard.length?scoreboard.map(([id,n])=><div className="pa-score" key={id}><span><ConnectionName name={game.names[id]??id.slice(0,6)} offline={game.seats.some(s=>s.id===id&&!s.online)} bot={game.seats.some(s=>s.id===id&&s.bot)}/></span><strong>{n}</strong></div>):<p>Scores appear after the first hand.</p>}</div><div className="panel"><h3>Active decrees</h3>{game.activeDecrees.length?game.activeDecrees.map(d=><div className="pa-decree" key={d.key}>{PA_DECREE_NAMES[d.key]} {d.value??''}{d.expiresBefore!==undefined?<small>expires before hand {d.expiresBefore}</small>:null}</div>):<p>No decrees in effect.</p>}</div></aside></div>}
  </section>:<section className="pa-phone">
-  <button type="button" className="btn btn-small pa-sound-toggle" onClick={sounds.toggle} aria-pressed={sounds.enabled}>{sounds.enabled?'🔊 Sounds on':'🔇 Sounds off'}</button>
+  <button type="button" className="btn btn-small pa-sound-toggle" onClick={sounds.toggle} aria-label="Toggle sound effects" aria-pressed={sounds.enabled}>{sounds.enabled?'🔊 Effects on':'🔇 Effects off'}</button>
   {activeSkip?.skipped===view.me.id&&<div key={activeSkip.serial} className="pa-skipped-phone" role="status">⏭ SKIPPED — your turn was bypassed</div>}
   {game.stage==='ended'&&<div className="panel pa-message"><h2>Game ended</h2><p>Final leaderboard is on the host presentation.</p></div>}
   {view.status==='setup'&&<div className="panel pa-message"><h2>Host is setting up the room</h2><p>You can ready up once the lobby is open.</p></div>}
