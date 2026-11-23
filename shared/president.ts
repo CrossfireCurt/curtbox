@@ -42,6 +42,7 @@ export interface PAState {
   pilePlays?:PAPilePlay[];pileHistory?:PAClearedPile[];
   lastClear?:{by:string;cards:PACard[];at:number;reason:string;serial:number};
   lastSkip?:{by:string;skipped:string;at:number;serial:number};
+  lastPass?:{by:string;at:number;serial:number};
   lastPlayed?:{by:string;at:number;serial:number};
   drinkEvents?:Record<string,{serial:number;at:number}>;
   exchange:PAExchange[]; stageEndsAt?:number; decrees:PADecree[];
@@ -58,7 +59,7 @@ export interface PAPublic {
   playRule?:{empty:boolean;rank?:string;count:number;openingCard?:PACard;doubleTrouble:boolean};
   currentPlayerId?:string;turnEndsAt?:number;stageEndsAt?:number;pile?:PACard[];pileOwner?:string;
   pilePlays?:PAPilePlay[];pileHistory?:PAClearedPile[];
-  lastClear?:PAState['lastClear'];lastSkip?:PAState['lastSkip'];
+  lastClear?:PAState['lastClear'];lastSkip?:PAState['lastSkip'];lastPass?:PAState['lastPass'];
   /** Presenter card sound event and private affected-player drink cue. */
   lastPlayed?:PAState['lastPlayed'];myDrinkEvent?:{serial:number;at:number};
   event?:string;activeDecrees:PADecree[];

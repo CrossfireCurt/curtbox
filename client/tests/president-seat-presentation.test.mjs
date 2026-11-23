@@ -53,6 +53,11 @@ test('turn timer aligns in the same row and font size as name, unboxed and serve
 });
 test('finished player keeps green outline and no card stack; 4–8 seat layout unchanged',()=>{
  assert.match(ui,/finish\?<div className="pa-seat-finished"/);
+ assert.match(ui,/className="pa-finished-label">Finished<\/strong>/);
+ assert.match(ui,/className="pa-finished-rank" role="img"/);
+ assert.match(ui,/rankIcon\(finish,game\.handPlayerCount,s\.mode==='asshole'\)/);
+ assert.match(css,/\.pa-seat \.pa-seat-finished \.pa-finished-label\{font-size:clamp\(1\.35rem/);
+ assert.match(css,/\.pa-seat \.pa-seat-finished \.pa-finished-rank\{font-size:clamp\(2\.2rem/);
  assert.match(ui,/Finished as \$\{seatRank\}/);
  assert.match(css,/\.pa-seat\.finished\{border:4px solid #4aff9f/);
  assert.match(ui,/const angle=2\*Math\.PI\*i\/Math\.max\(1,game\.seats\.length\)/);
