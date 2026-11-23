@@ -16,7 +16,7 @@ test('skip is rendered on presenter seat and affected phone, not every player',(
  assert.match(ui,/activeSkip\?\.skipped===p\.id/);
  assert.match(ui,/activeSkip\?\.skipped===view\.me\.id/);
  assert.match(ui,/className="pa-skipped-seat"/);
- assert.match(ui,/className="pa-hand-event-overlay is-skip" role="status" aria-label="You were skipped">⏭️/);
+ assert.match(ui,/className="pa-hand-event-overlay is-skip" role="status" aria-label="You were skipped"><span className="pa-event-emoji" aria-hidden="true">⏭️<\/span><strong className="pa-event-label">SKIPPED!<\/strong>/);
  assert.match(ui,/key=\{activeSkip\.serial\}/);
  assert.match(ui,/now-offset>=game\.lastSkip\.at/);
 });
