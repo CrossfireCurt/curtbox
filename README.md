@@ -32,7 +32,7 @@ Two regular rounds and a selected finale: Top 3, Rank Answers, or Percentage Sho
 
 ### President / Asshole
 
-4–8 combined human/bot Players (bots optional, host-configurable 0–7), one full 52-card deck, single/pair/triple/four-kind play, existing 2/four-kind clears and optional Social. **Known behavior to update:** ordinary equal-rank currently clears in code; [issue #3](https://github.com/CrossfireCurt/curtbox/issues/3) changes that to skip the next player (while a successful Social still clears), rank succession, host-configurable timers and readiness. Presidential Decrees cover seating, dealing, play direction, Card Exchange, Democracy, Term Limits and optional drinking. If Term Limits gives a decree N rounds, it lasts exactly N complete hands and expires *before* the next hand; retroactive countdowns persist after Term Limits ends. Full rules and caveats are in the game spec.
+4–8 combined human/bot Players (bots optional, host-configurable 0–7), one full 52-card deck, single/pair/triple/four-kind play, existing 2/four-kind clears and optional Social. ordinary equal-rank plays skip the next player with synchronized animations, while a successful Social clears (see [issue #3](https://github.com/CrossfireCurt/curtbox/issues/3)), rank succession, host-configurable timers and readiness. Presidential Decrees cover seating, dealing, play direction, Card Exchange, Democracy, Term Limits and optional drinking. If Term Limits gives a decree N rounds, it lasts exactly N complete hands and expires *before* the next hand; retroactive countdowns persist after Term Limits ends. Full rules and caveats are in the game spec.
 
 ## Install and run
 

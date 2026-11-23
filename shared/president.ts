@@ -20,6 +20,7 @@ export interface PAState {
   leadPlayer?:string; turn?:string; turnEndsAt?:number; pile:PACard[]; pileOwner?:string; pileRank?:number;
   passed:string[]; lastPlay?:{player:string;rank:number;count:number;cards:PACard[];serial:number};serial:number;
   lastClear?:{by:string;cards:PACard[];at:number;reason:string;serial:number};
+  lastSkip?:{by:string;skipped:string;at:number;serial:number};
   exchange:PAExchange[]; stageEndsAt?:number; decrees:PADecree[];
   pendingPresident?:string; decreeActionsRemaining:number; vote?:PAVote;
   presidencies:Record<string,number>; streaks:Record<string,number>; longestStreak:Record<string,number>;
@@ -29,7 +30,7 @@ export interface PAState {
 export interface PAPublic {
   stage:PAStage;handNumber:number;seats:{id:string;name:string;cards:number;position?:number;online:boolean;ready:boolean;bot:boolean;nextHand?:boolean}[];
   currentPlayerId?:string;turnEndsAt?:number;stageEndsAt?:number;pile?:PACard[];pileOwner?:string;
-  lastClear?:PAState['lastClear'];event?:string;activeDecrees:PADecree[];
+  lastClear?:PAState['lastClear'];lastSkip?:PAState['lastSkip'];event?:string;activeDecrees:PADecree[];
   handRanks:PARank[];previousRanks:PARank[];myHand?:PACard[];myReady?:boolean;inHand?:boolean;myFinished?:boolean;
   myExchange?:{count:number;original:PACard[];selected?:PACard[]};
   myPendingDrinks?:string[];canSocial?:boolean;socialRequirement?:{rank:string;count:number};canPlay?:boolean;isPresident?:boolean;

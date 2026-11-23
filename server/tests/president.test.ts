@@ -141,16 +141,70 @@ test('all action deadlines and maximum active cap honor the limit, including sel
  assert.equal(g.decrees.length,0);
 });
 
-test('equal-rank response clears; mismatched combination size is rejected',()=>{
+test('ordinary equal-rank response skips one seat, keeps the pile, and publishes the skip to phones',()=>{
  const r=fixture(),g=r.pa!;for(let i=1;i<=4;i++)readyPA(r,`p${i}`,true,1000);
- const p=g.turn!,q=g.seats[(g.seats.indexOf(p)+1)%4];
- g.hands[p]=['6C','6D'];g.hands[q]=['6H','6S','7H'];
+ const p=g.turn!,direction=g.seats;
+ const q=direction[(direction.indexOf(p)+1)%4],skipped=direction[(direction.indexOf(p)+2)%4],after=direction[(direction.indexOf(p)+3)%4];
+ g.hands[p]=['6C','6D','KC'];g.hands[q]=['6H','6S','7H'];
  g.turn=p;g.pile=[];g.lastClear={by:p,cards:[],reason:'setup',at:0,serial:0};
  playPA(r,p,['6C','6D'],2000);
  assert.equal(g.turn,q);
  assert.throws(()=>playPA(r,q,['7H'],2001),/Match the number/);
  playPA(r,q,['6H','6S'],2002);
- assert.equal(g.lastClear?.reason,'Equal rank');assert.equal(g.pile.length,0);
+ assert.equal(g.turn,after);assert.equal(g.pile.length,4);
+ assert.equal(g.pileOwner,q);assert.equal(g.lastClear?.reason,'setup');
+ assert.equal(g.lastPlay?.player,q);assert.equal(g.lastPlay?.count,2);
+ assert.deepEqual({by:g.lastSkip?.by,skipped:g.lastSkip?.skipped,at:g.lastSkip?.at},{by:q,skipped,at:2002});
+ assert.equal(g.turnEndsAt,2002+r.paSettings!.turnSeconds*1000);
+ assert.equal(publicPA(r,r.participants.find(x=>x.id===skipped)!)?.lastSkip?.skipped,skipped);
+ assert.equal(publicPA(r,{id:'host',role:'host'} as Participant)?.lastSkip?.by,q);
+ assert.throws(()=>playPA(r,skipped,['7C'],2003),/Not your turn/);
+});
+
+test('equal-rank skip respects reverse direction and skips even when the player finishes',()=>{
+ const r=fixture(),g=r.pa!;for(let i=1;i<=4;i++)readyPA(r,`p${i}`,true,1000);
+ setDecree(r,'reverse_play');
+ g.turn='p2';g.lastClear={by:'p2',cards:[],reason:'setup',at:0,serial:0};
+ g.hands.p2=['8C','KD'];g.hands.p1=['8D'];
+ playPA(r,'p2',['8C'],2000);assert.equal(g.turn,'p1');
+ playPA(r,'p1',['8D'],2001);
+ assert.equal(g.finished.includes('p1'),true);
+ assert.equal(g.lastSkip?.skipped,'p4');assert.equal(g.turn,'p3');
+ assert.deepEqual(g.pile,['8C','8D']);assert.equal(g.stage,'play');
+});
+
+test('consecutive equal-rank singles skip in current direction without clearing',()=>{
+ const r=fixture(),g=r.pa!;for(let i=1;i<=4;i++)readyPA(r,`p${i}`,true,1000);
+ g.turn='p1';g.lastClear={by:'p1',cards:[],reason:'setup',at:0,serial:0};
+ g.hands.p1=['9C','KC'];g.hands.p2=['9D','KD'];g.hands.p3=['8H','KH'];g.hands.p4=['9H','QH'];
+ playPA(r,'p1',['9C'],2000);
+ playPA(r,'p2',['9D'],2001);
+ assert.equal(g.turn,'p4');assert.equal(g.lastSkip?.skipped,'p3');
+ const firstSerial=g.lastSkip!.serial;
+ playPA(r,'p4',['9H'],2002);
+ assert.equal(g.turn,'p2');assert.equal(g.lastSkip?.skipped,'p1');
+ assert.ok(g.lastSkip!.serial>firstSerial);
+ assert.equal(g.pile.length,3);
+});
+
+test('Social clears rather than skipping even when it matches the pile rank',()=>{
+ const r=fixture(),g=r.pa!;r.paSettings!.social=true;for(let i=1;i<=4;i++)readyPA(r,`p${i}`,true,1000);
+ g.turn='p1';g.hands.p1=['7C','KC'];g.hands.p2=['7D','7H','7S','KD'];
+ g.lastClear={by:'p1',cards:[],reason:'setup',at:0,serial:0};
+ playPA(r,'p1',['7C'],2000);
+ playPA(r,'p2',['7D','7H','7S'],2001,true);
+ assert.equal(g.lastClear?.reason,'Social');assert.equal(g.pile.length,0);
+ assert.equal(g.lastSkip,undefined);assert.equal(g.turn,'p2');
+});
+
+test('four of a kind and 2 remain special clears, never equal-rank skips',()=>{
+ const r=fixture(),g=r.pa!;for(let i=1;i<=4;i++)readyPA(r,`p${i}`,true,1000);
+ g.lastClear={by:'p1',cards:[],reason:'setup',at:0,serial:0};
+ g.turn='p1';g.hands.p1=['5C','5D','5H','5S','KC'];
+ playPA(r,'p1',['5C','5D','5H','5S'],2000);
+ assert.equal(g.lastClear?.reason,'Special clear');assert.equal(g.lastSkip,undefined);
+ g.hands.p1.push('2C');playPA(r,'p1',['2C'],2001);
+ assert.equal(g.lastClear?.reason,'Special clear');assert.equal(g.pile.length,0);
 });
 
 test('Term Limits with host-configured self-expiration expires all targets before hand 9',()=>{

@@ -101,7 +101,7 @@ function beginHand(r:RoomState,now:number){
   for(const id of [...ranked(g,ids)].reverse().slice(0,extra))deficits[id]++;
   while(cards.length){for(const id of dealOrder)if(deficits[id]>0){hands[id].push(cards.pop()!);deficits[id]--;}}
  }else{let n=0;while(cards.length)hands[dealOrder[n++%dealOrder.length]].push(cards.pop()!);}
- g.handNumber=newHand;g.hands=hands;g.active=ids;g.ready=[];g.finished=[];g.handRanks=[];g.passed=[];g.pile=[];g.pileOwner=undefined;g.pileRank=undefined;g.lastPlay=undefined;g.lastClear=undefined;g.serial++;
+ g.handNumber=newHand;g.hands=hands;g.active=ids;g.ready=[];g.finished=[];g.handRanks=[];g.passed=[];g.pile=[];g.pileOwner=undefined;g.pileRank=undefined;g.lastPlay=undefined;g.lastClear=undefined;g.lastSkip=undefined;g.serial++;
  const leader=newHand===1?ids.find(id=>hands[id].includes(s.openingCard)):low;
  chooseLead(g,leader);g.turnEndsAt=now+s.turnSeconds*1000;g.stage='play';g.event=`Hand ${newHand} dealt`;
  g.exchange=[];
@@ -174,8 +174,14 @@ export function playPA(r:RoomState,id:string,cards:PACard[],now=Date.now(),socia
  g.hands[id]=g.hands[id].filter(c=>!cards.includes(c));g.pile.push(...cards);g.pileOwner=id;g.pileRank=rank;g.lastPlay={player:id,rank,count:cards.length,cards:[...cards],serial:++g.serial};g.passed=[];
  if(rank===12&&has(g,'drink_twos'))for(const target of g.active)if(target!==id&&!isBot(r,target)&&!g.finished.includes(target))(g.drinking[target]??=[]).push(`${g.names[id]} played a 2 — drink`);
  const ended=finishCards(r,id,now);if(ended)return;
- if(social||special||equal){clear(g,id,social?'Social':special?'Special clear':'Equal rank',now);g.turnEndsAt=now+r.paSettings!.turnSeconds*1000;}
- else nextTurn(r,id,now);
+ if(social||special){clear(g,id,social?'Social':'Special clear',now);g.turnEndsAt=now+r.paSettings!.turnSeconds*1000;}
+ else if(equal){
+  // A normal equal-rank response leaves the pile live and skips exactly one
+  // still-active player in the current play direction. Social clears instead.
+  const skipped=nextIn(g,id,g.finished,activeDirection(g));
+  if(skipped){g.lastSkip={by:id,skipped,at:now,serial:++g.serial};nextTurn(r,skipped,now);}
+  else nextTurn(r,id,now);
+ }else nextTurn(r,id,now);
 }
 export function passPA(r:RoomState,id:string,now=Date.now(),manual=true){
  const g=r.pa!;if(!g||g.stage!=='play'||g.turn!==id)throw Error('Not your turn.');
@@ -393,7 +399,7 @@ export function publicPA(r:RoomState,me:Participant):PAPublic|undefined{
  const exchange=g.exchange.find(e=>e.upper===myId);
  return {stage:g.stage,handNumber:g.handNumber,seats:seats.map(id=>({id,name:g.names[id]??player(r,id)?.name??'Player',cards:g.hands[id]?.length??0,position:g.previousRanks.find(x=>x.id===id)?.position,online:player(r,id)?.online??false,ready:isBot(r,id)||g.ready.includes(id),bot:isBot(r,id),nextHand:g.stage!=='ready'&&!g.active.includes(id)})),
   currentPlayerId:g.turn,turnEndsAt:g.turnEndsAt,stageEndsAt:g.stageEndsAt,
-  pile:host?[...g.pile]:undefined,pileOwner:host?g.pileOwner:undefined,lastClear:host?g.lastClear:undefined,event:g.event,
+  pile:host?[...g.pile]:undefined,pileOwner:host?g.pileOwner:undefined,lastClear:host?g.lastClear:undefined,lastSkip:g.lastSkip,event:g.event,
   activeDecrees:g.decrees,handRanks:g.handRanks,previousRanks:g.previousRanks,
   myHand:!host?[...(g.hands[myId]??[])].sort((a,b)=>order(a)-order(b)):undefined,myReady:g.ready.includes(myId),inHand:g.active.includes(myId),myFinished:g.finished.includes(myId),
   myExchange:!host&&exchange?{count:exchange.count,original:exchange.original,selected:exchange.selected}:undefined,
