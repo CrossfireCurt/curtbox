@@ -60,3 +60,7 @@ Disconnected-player presenter status is implemented via shared `ConnectionName` 
 
 ## Implementation delivery: pile presentation (#4, #5, #13)
 The live pile is grouped into fully visible cards (no overlap); the latest play drives a Single/Pair/Triple/Four-of-a-kind label; and the Host shows bounded per-hand **Pile History** with player attribution. See the linked PR for #4/#5/#13 and the game spec. The next queued independent gameplay work is #6 (same-rank-only selection).
+
+## Implemented card selection: issues #6 and #14
+
+The player card picker now preserves valid preselection across turn-owner changes and restricts Play/Social selection to one rank at a time (a different-rank tap switches selection). Mixed-rank Card Exchange returns remain valid. Selection resets on a new hand, stage/identity change, or successful submission; the UI filters out no-longer-owned cards. Covered by the helper's direct tests and UI regression checks. Manual phone/touch QA remains recommended.

@@ -1,5 +1,6 @@
 import {useEffect,useState} from 'react';
 import {ConnectionName} from './ConnectionName';
+import {toggleCardSelection,availableCardSelection} from './presidentSelection';
 import type {RoomView} from '../../shared/types';
 import type {PACard,PADecreeAction,PADecreeKey,PASettings} from '../../shared/president';
 import {PA_DECREE_NAMES} from '../../shared/president';
@@ -53,15 +54,17 @@ export function PresidentAsshole({view,now,offset,onAction}:Props){
  const [selected,setSelected]=useState<PACard[]>([]);
  const [nominees,setNominees]=useState<string[]>([]);
  const [lastSerial,setLastSerial]=useState<number|undefined>();
- useEffect(()=>{setSelected([]);},[game?.currentPlayerId,game?.handNumber,game?.stage]);
+ useEffect(()=>{setSelected([]);},[view.me.id,game?.handNumber,game?.stage]);
  useEffect(()=>{setNominees([]);},[game?.handNumber,game?.stage]);
  useEffect(()=>{if(game?.lastClear?.serial!==lastSerial)setLastSerial(game?.lastClear?.serial);},[game?.lastClear?.serial]);
  if(!game||!s)return <div className="panel">Loading President / Asshole…</div>;
  const host=view.me.role==='host';const pending=game.myPendingDrinks??[];
  const blocked=pending.length>0&&game.activeDecrees.some(d=>d.key==='require_ack');
- const selections=selected.filter(c=>game.myHand?.includes(c));
+ const availableCards=game.stage==='exchange'?(game.myExchange?.original??[]):(game.myHand??[]);
+ const selections=availableCardSelection(selected,availableCards);
  const socialEligible=!!game.canSocial&&!!game.socialRequirement&&selections.length===game.socialRequirement.count&&selections.every(c=>c.slice(0,-1)===game.socialRequirement?.rank);
- const toggle=(c:PACard)=>setSelected(a=>a.includes(c)?a.filter(v=>v!==c):[...a,c]);
+ const toggle=(c:PACard)=>setSelected(a=>toggleCardSelection(availableCardSelection(a,availableCards),c,game.stage==='exchange'?'exchange':'play'));
+ // Waiting players may preselect while another seat is taking its turn.
  const choose=async(social=false)=>{const action=game.stage==='exchange'?'president:exchange':'president:play';const result=await onAction(action,{cards:selections,social});if(result)setSelected([]);};
  const options=availableChanges(view).filter(a=>s.mode==='asshole'||a.kind==='repeal'||!['drink_twos','require_ack'].includes(a.key));const optionKey=(a:PADecreeAction)=>JSON.stringify(a);
  const activeCount=game.seats.filter(x=>x.online).length;
