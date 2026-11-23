@@ -264,3 +264,12 @@
 .pa-ranking{width:100%;max-height:460px;overflow-y:auto}
 .pa-ranking .pa-hand-results{margin:8px 0}
 @media (max-width:650px){.pa-result-heading{display:block}.pa-result-name{display:block;margin-top:3px}.pa-result-stat{font-size:.75rem}.pa-ranking{max-height:none}}
+
+/* Audio controls and visible authoritative player-turn countdown (#11/#12). */
+.pa-seat-timer{display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;padding:6px 9px;border-radius:8px;background:#244d44;border:2px solid #ffe0a0;color:#fff3d6;font-weight:900;font-size:clamp(.83rem,1.65vw,1.25rem);font-variant-numeric:tabular-nums}
+.pa-seat-timer.is-low{border-color:#ff856d;background:#6a261f;color:white;animation:pa-timer-pulse 1s ease-in-out infinite}
+@keyframes pa-timer-pulse{0%,100%{opacity:1}50%{opacity:.76}}
+.pa-sound-toggle{flex:0 0 auto;min-width:116px}
+.pa-phone>.pa-sound-toggle{margin:0 0 12px}
+@media(max-width:850px){.pa-stage-head{flex-wrap:wrap}.pa-seat-timer{padding:4px 6px;font-size:.84rem}.pa-sound-toggle{min-width:unset}}
+@media(prefers-reduced-motion:reduce){.pa-seat-timer.is-low{animation:none}}
