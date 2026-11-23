@@ -39,7 +39,7 @@ These are **queued, not implemented**. Preserve the existing order (#2–#8) bef
 
 | Queue order | Issue | Accepted request |
 | --- | --- | --- |
-| 9 | [#11](https://github.com/CrossfireCurt/curtbox/issues/11) | Card/table sound effects; **player-only** audible turn start, end-of-turn ticking and being skipped |
+| 9 | [#11](https://github.com/CrossfireCurt/curtbox/issues/11) | Card/table sounds, Social cheering, pile-clear whoosh; **player-only** turn-start/ticking/skipped cues and drinking glass clink |
 | 10 | [#12](https://github.com/CrossfireCurt/curtbox/issues/12) | Show live server-authoritative turn countdown in the **active player's presenter square** |
 | 11 | [#13](https://github.com/CrossfireCurt/curtbox/issues/13) | Label the **current** pile's combination as Single, Pair, Triple or Four-of-a-kind (not total accumulated cards) |
 | 12 | [#14](https://github.com/CrossfireCurt/curtbox/issues/14) | Preserve the player's valid preselected cards when their turn becomes active |
