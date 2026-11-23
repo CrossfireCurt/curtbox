@@ -350,19 +350,18 @@
 
 /* #33: bigger names; rank icon alongside; timer in upper-right without a pill;
    the number of held cards is shown by actual overlapping face-down card backs. */
-.pa-seat{min-height:142px;gap:10px;padding:10px 12px 12px;justify-content:flex-start}
-.pa-seat-header{display:flex;align-items:center;justify-content:space-between;width:100%;min-width:0;gap:8px}
+.pa-seat{--pa-seat-header-font:clamp(1.35rem,2vw,1.85rem);min-height:142px;gap:8px;padding:5px 9px 12px;justify-content:flex-start;width:clamp(165px,17vw,225px);max-width:24%}
+.pa-seat-header{display:flex;align-items:flex-start;justify-content:space-between;width:100%;min-width:0;gap:6px}
 .pa-seat-identity{width:auto;flex:1 1 auto;min-width:0;max-width:100%;overflow:hidden}
 .pa-seat-name-row{display:flex;align-items:center;justify-content:flex-start;gap:6px;max-width:100%;min-width:0;width:100%}
-.pa-seat .pa-seat-player-name,.pa-seat .pa-seat-timer{font-size:clamp(1.12rem,1.55vw,1.48rem)}
-.pa-seat .pa-seat-player-name{font-weight:850;line-height:1.16;min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pa-seat .pa-seat-player-name,.pa-seat .pa-seat-timer{font-size:var(--pa-seat-header-font)}
+.pa-seat .pa-seat-player-name{font-weight:900;line-height:1.12;letter-spacing:-.035em;min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pa-seat .pa-seat-player-name .connection-name{max-width:100%}
 .pa-seat .pa-seat-player-name .connection-name-text{max-width:100%;white-space:nowrap}
-/* Old .pa-seat span font sizes override inheritance unless both nested spans
-   explicitly inherit from the player-name element. */
+/* Make the visible name match the timer despite the legacy .pa-seat span rule. */
 .pa-seat .pa-seat-player-name .connection-name,
-.pa-seat .pa-seat-player-name .connection-name-text{font-size:inherit;line-height:inherit}
-.pa-seat .pa-seat-rank-icon{font-size:clamp(1.12rem,1.55vw,1.48rem);flex:0 0 auto;display:inline-flex;align-items:center;line-height:1.2;overflow:visible}
+.pa-seat .pa-seat-player-name .connection-name-text{font-size:var(--pa-seat-header-font);line-height:inherit}
+.pa-seat .pa-seat-rank-icon{font-size:var(--pa-seat-header-font);flex:0 0 auto;display:inline-flex;align-items:center;line-height:1.12;overflow:visible}
 .pa-seat .pa-bot-icon{font-size:clamp(1.05rem,1.5vw,1.35rem);flex:0 0 auto;margin:0;line-height:1.2}
 .pa-seat .pa-seat-timer{position:static;flex:0 0 auto;display:block;padding:0;margin:0;border:0;border-radius:0;background:transparent;box-shadow:none;color:#fff2cc;font-weight:900;font-variant-numeric:tabular-nums;line-height:1.16;text-shadow:0 2px 7px #000a;white-space:nowrap;pointer-events:none}
 .pa-seat .pa-seat-timer.is-low{border:0;background:transparent;color:#ff9785;text-shadow:0 0 13px #ff6b5799,0 2px 7px #000a}
@@ -374,16 +373,13 @@
 .pa-seat .pa-seat-finished{font-size:clamp(.82rem,1.1vw,1rem);font-weight:850;color:#caffdf;min-height:58px;display:flex;align-items:center;justify-content:center}
 .pa-seat .pa-seat-ready{font-size:clamp(.88rem,1.1vw,1.04rem);font-weight:800;color:#e8f0e4;min-height:58px;display:flex;align-items:center;justify-content:center}
 @media(max-width:850px){
- .pa-seat{min-height:126px;padding:10px 7px 9px;gap:7px}
- .pa-seat .pa-seat-player-name,.pa-seat .pa-seat-timer{font-size:clamp(1.01rem,2vw,1.27rem)}
- .pa-seat .pa-seat-rank-icon{font-size:clamp(1.01rem,2vw,1.27rem)}
+ .pa-seat{--pa-seat-header-font:clamp(1.2rem,2.45vw,1.5rem);min-height:126px;padding:5px 7px 9px;gap:7px;width:clamp(137px,20vw,180px);max-width:24%}
  .pa-seat-header{gap:6px}
  .pa-seat-card-stack{height:56px}
 }
 @media(max-width:560px){
- .pa-seat{min-height:116px;padding:9px 5px 7px;gap:5px}
- .pa-seat .pa-seat-player-name,.pa-seat .pa-seat-timer{font-size:.98rem}
- .pa-seat .pa-seat-rank-icon,.pa-seat .pa-bot-icon{font-size:.98rem}
+ .pa-seat{--pa-seat-header-font:1.13rem;min-height:116px;padding:5px 5px 7px;gap:5px;width:126px;max-width:27%}
+ .pa-seat .pa-bot-icon{font-size:1.13rem}
  .pa-seat-header{gap:4px}
  .pa-seat-name-row{gap:3px}
  .pa-seat-card-stack{transform:scale(.83);transform-origin:center top;height:47px}
