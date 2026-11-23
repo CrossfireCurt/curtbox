@@ -61,7 +61,7 @@ export function configurePA(r:RoomState,patch:Partial<PASettings>){
  Object.assign(r.paSettings,patch);
 }
 export function readyPA(r:RoomState,id:string,ready:boolean,now=Date.now()){
- requirePlayer(r,id);const g=r.pa!;ensureUnblocked(g,id);
+ requirePlayer(r,id);const g=r.pa!;ensureUnblocked(g,id,now);
  if(!g||g.stage!=='ready'||r.status!=='lobby'&&r.status!=='playing')throw Error('Players cannot ready up right now.');
  g.ready=ready?uniq([...g.ready,id]):g.ready.filter(x=>x!==id);maybeStart(r,now);
 }
@@ -122,7 +122,16 @@ function beginHand(r:RoomState,now:number){
  r.status='playing';
 }
 function lowestCards(cards:PACard[],n:number){return [...cards].sort((a,b)=>order(a)-order(b)||a.localeCompare(b)).slice(0,n);}
-function ensureUnblocked(g:PAState,id:string){if(g.drinking[id]?.length&&has(g,'require_ack'))throw Error('Acknowledge your notification first.');}
+/** The legacy Require Acknowledgment decree now auto-releases with its cue.
+ * No client ack action or indefinitely pending notification is needed. */
+const DRINK_CUE_MS=2600;
+function ensureUnblocked(g:PAState,id:string,now=Date.now()){
+ if(!g.drinking[id]?.length||!has(g,'require_ack'))return;
+ const event=g.drinkEvents?.[id];
+ if(event&&now>=event.at&&now-event.at<DRINK_CUE_MS)
+  throw Error('Drink notification in progress.');
+ g.drinking[id]=[];
+}
 function validateCards(g:PAState,id:string,cards:PACard[]){
  if(cards.length<1||cards.length>4||uniq(cards).length!==cards.length)throw Error('Choose one to four distinct cards.');
  if(cards.some(c=>!g.hands[id]?.includes(c)))throw Error('You do not own all those cards.');
@@ -149,7 +158,8 @@ function addStat(g:PAState,id:string,key:keyof PAPlayerStats,value=1){
  }
 }
 function notifyDrink(g:PAState,id:string,message:string,now:number){
- (g.drinking[id]??=[]).push(message);
+ // One current notification is sufficient; it is never manually acknowledged.
+ g.drinking[id]=[message];
  (g.drinkEvents??={})[id]={serial:++g.serial,at:now};
 }
 function archivePile(g:PAState,by:string,reason:string,now:number){
@@ -194,7 +204,7 @@ function nextTurn(r:RoomState,from:string,now:number){const g=r.pa!,next=nextIn(
 export function playPA(r:RoomState,id:string,cards:PACard[],now=Date.now(),social=false,automatic=false){
  const g=r.pa!;requirePlayer(r,id);
  if(!g||g.stage!=='play'||!g.active.includes(id)||g.finished.includes(id))throw Error('You are not playing this hand.');
- if(!automatic)ensureUnblocked(g,id);
+ if(!automatic)ensureUnblocked(g,id,now);
  const onTurn=g.turn===id;
  if(!onTurn&&!social)throw Error('Not your turn.');
  const rank=validateCards(g,id,cards);
@@ -251,7 +261,7 @@ export function playPA(r:RoomState,id:string,cards:PACard[],now=Date.now(),socia
 }
 export function passPA(r:RoomState,id:string,now=Date.now(),manual=true){
  const g=r.pa!;if(!g||g.stage!=='play'||g.turn!==id)throw Error('Not your turn.');
- if(manual)ensureUnblocked(g,id);
+ if(manual)ensureUnblocked(g,id,now);
  if(!g.pile.length)throw Error('You must lead when the pile is empty.');
  if(manual&&!isBot(r,id)&&r.paSettings!.mode==='asshole')notifyDrink(g,id,'Pass = Drink',now);
  addStat(g,id,'passes');
@@ -265,7 +275,7 @@ export function passPA(r:RoomState,id:string,now=Date.now(),manual=true){
 }
 export function acknowledgePA(r:RoomState,id:string){requirePlayer(r,id);if(!r.pa)throw Error('Not in game');r.pa.drinking[id]=[];}
 export function exchangePA(r:RoomState,id:string,cards:PACard[],now=Date.now()){
- const g=r.pa!;if(!g||g.stage!=='exchange')throw Error('No exchange in progress.');ensureUnblocked(g,id);
+ const g=r.pa!;if(!g||g.stage!=='exchange')throw Error('No exchange in progress.');ensureUnblocked(g,id,now);
  const e=g.exchange.find(e=>e.upper===id);if(!e)throw Error('No exchange assigned to you.');
  if(e.selected)throw Error('Exchange already confirmed.');
  if(!Array.isArray(cards)||cards.length!==e.count||uniq(cards).length!==cards.length||cards.some(c=>!e.original.includes(c)))throw Error(`Select ${e.count} cards from your original dealt hand.`);
@@ -308,7 +318,7 @@ function apply(r:RoomState,a:PADecreeAction){
 }
 function afterDecision(r:RoomState){setReady(r);}
 export function decreePA(r:RoomState,id:string,a?:PADecreeAction,nominees?:PADecreeAction[],now=Date.now()){
- const g=r.pa!;if(!g||g.stage!=='decree'||g.pendingPresident!==id)throw Error('Only the current President may decide.');ensureUnblocked(g,id);
+ const g=r.pa!;if(!g||g.stage!=='decree'||g.pendingPresident!==id)throw Error('Only the current President may decide.');ensureUnblocked(g,id,now);
  const checkDrinking=(change:PADecreeAction)=>{if(r.paSettings!.mode==='president'&&change.kind==='enact'&&['drink_twos','require_ack'].includes(change.key))throw Error('Drinking decrees require Asshole mode.');};
  if(a)checkDrinking(a);if(nominees)for(const proposed of nominees)checkDrinking(proposed);
  if(nominees){
@@ -327,7 +337,7 @@ function resolveVote(r:RoomState,now:number){
  vote.tieIndices=ties;vote.deadline=now+r.paSettings!.decreeSeconds*1000;g.stageEndsAt=vote.deadline;
 }
 export function votePA(r:RoomState,id:string,index:number,now=Date.now()){
- const g=r.pa!;requirePlayer(r,id);if(!g||g.stage!=='vote'||!g.vote)throw Error('Voting is closed.');ensureUnblocked(g,id);
+ const g=r.pa!;requirePlayer(r,id);if(!g||g.stage!=='vote'||!g.vote)throw Error('Voting is closed.');ensureUnblocked(g,id,now);
  if(g.vote.tieIndices){if(id!==g.pendingPresident||!g.vote.tieIndices.includes(index))throw Error('President must break the tie.');apply(r,g.vote.proposals[index]);afterDecision(r);return;}
  if(!Number.isInteger(index)||index<0||index>=g.vote.proposals.length)throw Error('Invalid vote.');
  if(g.vote.votes[id]!==undefined)throw Error('Vote already submitted.');
