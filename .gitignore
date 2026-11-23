@@ -18,6 +18,7 @@ client/public/audio/music/
 client/public/audio/sfx/cue-*.ogg
 # Licensed Mixkit download is installed during packaging; never commit the raw sound with source files.
 client/public/audio/sfx/mixkit-social-cheer-459.mp3
+client/public/audio/sfx/mixkit-skip-laugh-424.mp3
 
 # Local GitHub release output
 release/
