@@ -13,6 +13,8 @@
 - [`docs/ARCHITECTURE_AND_AGENT_HANDOFF.md`](docs/ARCHITECTURE_AND_AGENT_HANDOFF.md): file map, Socket.IO contracts, state machines, tests, current limitations, critical next steps.
 - [`docs/DECISION_LOG.md`](docs/DECISION_LOG.md): what is final, what older ideas were superseded, what still needs verification.
 - [`docs/GITHUB_RELEASE_AND_DOCKER.md`](docs/GITHUB_RELEASE_AND_DOCKER.md): GitHub publication, CI/CD, versioned GHCR images, update/rollback guide.
+- [`docs/DEVELOPMENT_WORKFLOW.md`](docs/DEVELOPMENT_WORKFLOW.md): GitHub Codespaces / VS Code setup, AI coding workflow, PR-based iteration without ZIP handoffs.
+- [`docs/ROADMAP.md`](docs/ROADMAP.md): Open feature queue and GitHub issues.
 
 Older November 20 Survey Show planning documents remain in [`docs/archive/`](docs/archive/). They are historical, not the authoritative current implementation. In particular **Survey Show's percentage slider is a preview; a separate Submit button records the answer and the full timer runs**.
 
@@ -30,7 +32,7 @@ Two regular rounds and a selected finale: Top 3, Rank Answers, or Percentage Sho
 
 ### President / Asshole
 
-4–8 combined human/bot Players (bots optional, host-configurable 0–7), one full 52-card deck, single/pair/triple/four-kind play, equal-rank/2/four-kind clear, optional Social, rank succession, host-configurable timers and readiness. Presidential Decrees cover seating, dealing, play direction, Card Exchange, Democracy, Term Limits and optional drinking. If Term Limits gives a decree N rounds, it lasts exactly N complete hands and expires *before* the next hand; retroactive countdowns persist after Term Limits ends. Full rules and caveats are in the game spec.
+4–8 combined human/bot Players (bots optional, host-configurable 0–7), one full 52-card deck, single/pair/triple/four-kind play, existing 2/four-kind clears and optional Social. **Known behavior to update:** ordinary equal-rank currently clears in code; [issue #3](https://github.com/CrossfireCurt/curtbox/issues/3) changes that to skip the next player (while a successful Social still clears), rank succession, host-configurable timers and readiness. Presidential Decrees cover seating, dealing, play direction, Card Exchange, Democracy, Term Limits and optional drinking. If Term Limits gives a decree N rounds, it lasts exactly N complete hands and expires *before* the next hand; retroactive countdowns persist after Term Limits ends. Full rules and caveats are in the game spec.
 
 ## Install and run
 
@@ -110,3 +112,7 @@ To update the running Docker image from the GHCR release **without building**:
 3. To roll back, set `CURTBOX_IMAGE` to an earlier tag and rerun the update script. Back up the database before first switching Compose configurations.
 
 **One-time repository setup, lockfile generation, GitHub permissions, release commands, and database-volume precautions:** read [`docs/GITHUB_RELEASE_AND_DOCKER.md`](docs/GITHUB_RELEASE_AND_DOCKER.md) in full.
+
+## Collaborating without ZIP downloads
+
+Source of truth is [CrossfireCurt/curtbox](https://github.com/CrossfireCurt/curtbox). Open the repo in **GitHub Codespaces** (Code → Codespaces → Create codespace), or clone in VS Code and **Reopen in Container**. The `.devcontainer` setup supplies Node 22, PostgreSQL 16 and a generated local-only admin password; run `bash .devcontainer/start.sh` and open the forwarded private port 5173. Follow [`docs/DEVELOPMENT_WORKFLOW.md`](docs/DEVELOPMENT_WORKFLOW.md). For AI changes, prefer feature branches + PRs + GitHub Actions checks, not replacing source archives.
