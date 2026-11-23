@@ -346,3 +346,39 @@
 .pa-pile-empty{color:#dbebe2;text-align:center;display:grid;place-items:center;min-height:110px;font-size:1.05rem;font-weight:750}
 @media(max-width:850px){.pa-pile-heading{font-size:.73rem;letter-spacing:.065em}.pa-table-ring .pa-pile{min-height:108px}.pa-pile-fan{min-height:108px;padding:5px 1px}.pa-stack-card{width:clamp(43px,5vw,55px);height:clamp(69px,7.8vw,86px);margin-left:-12px}.pa-stack-index{font-size:16px;left:3px;top:4px}.pa-stack-pip{font-size:1.5rem;right:5px;bottom:5px}.pa-pile-buried{font-size:.64rem;padding:3px}}
 @media(max-width:560px){.pa-stack-card{width:42px;height:66px;margin-left:-11px}.pa-stack-card.latest{margin-bottom:5px}.pa-stack-index{font-size:14px}.pa-stack-pip{font-size:1.15rem}.pa-pile-buried{font-size:.6rem;max-width:44px;white-space:normal;line-height:1.15}.pa-table-ring .pa-pile{min-height:92px}.pa-pile-fan{min-height:90px}}
+
+
+/* #33: bigger names; rank icon alongside; timer in upper-right without a pill;
+   the number of held cards is shown by actual overlapping face-down card backs. */
+.pa-seat{min-height:142px;gap:10px;padding:32px 12px 12px}
+.pa-seat-identity{width:100%;max-width:100%;overflow:visible}
+.pa-seat-name-row{display:flex;align-items:center;justify-content:center;gap:6px;max-width:100%;min-width:0;width:100%}
+.pa-seat .pa-seat-player-name{font-size:clamp(1.12rem,1.55vw,1.48rem);font-weight:850;line-height:1.16;min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pa-seat .pa-seat-player-name .connection-name{max-width:100%}
+.pa-seat .pa-seat-player-name .connection-name-text{max-width:100%;white-space:nowrap}
+.pa-seat .pa-seat-rank-icon{font-size:clamp(1.35rem,1.75vw,1.8rem);flex:0 0 auto;display:inline-flex;align-items:center;line-height:1.2;overflow:visible}
+.pa-seat .pa-bot-icon{font-size:clamp(1.05rem,1.5vw,1.35rem);flex:0 0 auto;margin:0;line-height:1.2}
+.pa-seat .pa-seat-timer{position:absolute;top:8px;right:11px;display:block;padding:0;margin:0;border:0;border-radius:0;background:transparent;box-shadow:none;color:#fff2cc;font-size:clamp(1.35rem,2vw,1.95rem);font-weight:950;font-variant-numeric:tabular-nums;line-height:1.15;text-shadow:0 2px 7px #000a;white-space:nowrap;pointer-events:none;z-index:3}
+.pa-seat .pa-seat-timer.is-low{border:0;background:transparent;color:#ff9785;text-shadow:0 0 13px #ff6b5799,0 2px 7px #000a}
+.pa-seat-card-stack{position:relative;display:block;flex:0 0 auto;max-width:100%;height:59px;margin:0 auto;isolation:isolate}
+.pa-seat-card-back{box-sizing:border-box;display:block;position:absolute;width:38px;height:55px;border:2px solid #f0dbab;border-radius:5px;background:#113e54;box-shadow:0 2px 6px #0008;overflow:hidden}
+.pa-seat-card-pattern{position:absolute;inset:3px;border:1px solid #8fc1d3;border-radius:2px;background:repeating-linear-gradient(45deg,#235978 0px,#235978 4px,#164764 4px,#164764 8px);display:grid;place-items:center}
+.pa-seat-card-pattern:after{content:'✦';color:#f2d496;font-size:16px;text-shadow:0 1px 3px #001e28}
+.pa-seat-card-overflow{position:absolute;z-index:25;right:-20px;bottom:-4px;display:block;background:#f6df9d;color:#153a36;border-radius:9px;padding:1px 4px;font-size:11px;font-weight:900}
+.pa-seat .pa-seat-finished{font-size:clamp(.82rem,1.1vw,1rem);font-weight:850;color:#caffdf;min-height:58px;display:flex;align-items:center;justify-content:center}
+.pa-seat .pa-seat-ready{font-size:clamp(.88rem,1.1vw,1.04rem);font-weight:800;color:#e8f0e4;min-height:58px;display:flex;align-items:center;justify-content:center}
+@media(max-width:850px){
+ .pa-seat{min-height:126px;padding:29px 7px 9px;gap:7px}
+ .pa-seat .pa-seat-player-name{font-size:clamp(1.01rem,2vw,1.27rem)}
+ .pa-seat .pa-seat-rank-icon{font-size:1.36rem}
+ .pa-seat .pa-seat-timer{font-size:clamp(1.22rem,2.3vw,1.5rem);top:6px;right:8px}
+ .pa-seat-card-stack{height:56px}
+}
+@media(max-width:560px){
+ .pa-seat{min-height:116px;padding:25px 5px 7px;gap:5px}
+ .pa-seat .pa-seat-player-name{font-size:.98rem}
+ .pa-seat .pa-seat-rank-icon,.pa-seat .pa-bot-icon{font-size:1.12rem}
+ .pa-seat .pa-seat-timer{font-size:1.18rem;top:5px;right:6px}
+ .pa-seat-name-row{gap:3px}
+ .pa-seat-card-stack{transform:scale(.83);transform-origin:center top;height:47px}
+}
