@@ -6,6 +6,7 @@ import type {Ack,Choice,PublicGame,RoomView,Role,Settings,SourceInfo} from '../.
 import {useGameAudio} from './audio';
 import {roomFromPath,roomPath} from './roomRoute';
 import {PresidentAsshole,PASettingsEditor} from './PresidentAsshole';
+import {installTvNavigation} from './tvNavigation';
 
 type Session={code:string;token:string;id:string;role:Role};
 type ReactEvent={id:string;emoji:string;label:string;by:string;at:number;sound:string};
@@ -24,6 +25,7 @@ const errorMessage=(e:unknown)=>e instanceof Error?e.message:String(e);
 function useNow(){const [now,setNow]=useState(Date.now());useEffect(()=>{const timer=setInterval(()=>setNow(Date.now()),180);return()=>clearInterval(timer);},[]);return now;}
 
 function App(){
+ useEffect(() => installTvNavigation(), []);
  const socket=useRef<Socket|null>(null);
  const session=useRef<Session|undefined>(undefined);
  const [connected,setConnected]=useState(false);
