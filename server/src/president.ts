@@ -516,7 +516,7 @@ export function publicPA(r:RoomState,me:Participant):PAPublic|undefined{
   pilePlays:host?pilePlays(g).map(p=>({...p,cards:[...p.cards]})):undefined,
   pileHistory:host?(g.pileHistory??[]).map(h=>({...h,cards:[...h.cards],plays:h.plays.map(p=>({...p,cards:[...p.cards]}))})):undefined,
   lastClear:host?g.lastClear:undefined,lastSkip:g.lastSkip,lastPass:host?g.lastPass:undefined,
-   lastPlayed:host?g.lastPlayed:undefined,myDrinkEvent:!host?g.drinkEvents?.[myId]:undefined,event:g.event,
+   lastPlayed:host?g.lastPlayed:undefined,myDrinkEvent:!host?g.drinkEvents?.[myId]:undefined,mySocialEvent:!host&&g.lastClear?.reason==='Social'?{serial:g.lastClear.serial,at:g.lastClear.at}:undefined,event:g.event,
   activeDecrees:g.decrees,handRanks:g.handRanks,previousRanks:g.previousRanks,
   myHand:!host?[...(g.hands[myId]??[])].sort((a,b)=>order(a)-order(b)):undefined,myReady:g.ready.includes(myId),inHand:g.active.includes(myId),myFinished:g.finished.includes(myId),
   myExchange:!host&&exchange?{count:exchange.count,original:exchange.original,selected:exchange.selected}:undefined,

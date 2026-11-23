@@ -740,3 +740,19 @@ test('drinking events update last cue instead of growing unacknowledged notifica
  assert.ok((g.drinkEvents?.[passer]?.serial??0)>(previous??0));
  assert.deepEqual(g.drinking[passer],['Pass = Drink']);
 });
+
+test('Social in President mode also sends minimal visual cheer to phones, without drinking or pile disclosure',()=>{
+ const r=fixture(),g=r.pa!;r.paSettings!.mode='president';
+ for(let i=1;i<=4;i++)readyPA(r,`p${i}`,true,1000);
+ g.turn='p1';g.lastClear={by:'p1',cards:[],reason:'fixture',at:0,serial:0};
+ g.hands.p1=['7C','7D','7H','7S','KC'];
+ playPA(r,'p1',['7C','7D','7H','7S'],2000);
+ assert.equal(g.lastClear?.reason,'Social');
+ const presenter=publicPA(r,{id:'host',role:'host'} as Participant)!;
+ const phone=publicPA(r,r.participants[1])!;
+ assert.equal(presenter.mySocialEvent,undefined,'host uses its full lastClear snapshot');
+ assert.equal(phone.mySocialEvent?.at,2000);
+ assert.equal(phone.mySocialEvent?.serial,g.lastClear?.serial);
+ assert.equal(phone.lastClear,undefined,'phone never sees the cleared cards');
+ assert.equal(phone.myDrinkEvent,undefined,'President mode cheer does not request drinking');
+});

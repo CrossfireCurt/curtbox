@@ -17,11 +17,13 @@ test('visual event freshness honors authoritative timestamp and room clock offse
 });
 test('phone drink and skip notifications are big icons over hand, never acknowledgment banners',()=>{
  assert.match(ui,/function PhoneHandOverlays\(\{drink,skip\}/);
- assert.match(ui,/className="pa-hand-event-overlay is-drink" role="status" aria-label="Drink">🍻/);
+ assert.match(ui,/className="pa-hand-event-overlay is-drink" role="status" aria-label="Social cheers or drink">🍻/);
  assert.match(ui,/className="pa-hand-event-overlay is-skip" role="status" aria-label="You were skipped">⏭️/);
  assert.match(ui,/className="pa-hand-zone"/);
  assert.match(ui,/skip=\{activeSkip\?\.skipped===view\.me\.id\?activeSkip:undefined\}/);
  assert.match(ui,/game\.myDrinkEvent&&isPresidentVisualEventActive/);
+ assert.match(ui,/game\.mySocialEvent&&isPresidentVisualEventActive/);
+ assert.match(ui,/const cheersOverlay=drinkOverlay\?\?socialPhoneOverlay/);
  assert.doesNotMatch(ui,/pa-skipped-phone|president:ack|<h3>Notification<\/h3>/);
  assert.match(css,/\.pa-hand-event-overlay\{position:absolute;inset:0;z-index:35/);
  assert.match(css,/pointer-events:none/);
@@ -40,6 +42,6 @@ test('Social preview retains real last-clear cards under beer cheers before visi
 });
 test('Social that ends a hand still shows phone drink icon on ready results',()=>{
  assert.match(ui,/className="pa-ready-results"><HandResults/);
- assert.match(ui,/<PhoneHandOverlays drink=\{drinkOverlay\}/);
+ assert.match(ui,/<PhoneHandOverlays drink=\{cheersOverlay\}/);
  assert.match(ui,/className="pa-ready-question"/);
 });
