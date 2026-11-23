@@ -144,13 +144,15 @@ export function PresidentAsshole({view,now,offset,onAction,settingsOpen=false,on
      const rankTotal=finish?game.handPlayerCount:rankCount;
      const seatRank=rankPosition?rankTitle(rankPosition,rankTotal,s.mode==='asshole'):undefined;
      return <div className={'pa-seat'+(game.currentPlayerId===p.id?' active':'')+(finish?' finished':'')} key={p.id} style={seatStyle}>
-      {game.stage==='play'&&game.currentPlayerId===p.id&&game.turnEndsAt!==undefined&&<span className={'pa-seat-timer'+(game.turnEndsAt-now+offset<=5000?' is-low':'')} role="timer" aria-label="Time left on current player's turn">{formatLeft(game.turnEndsAt,now,offset)}</span>}
-      <div className="pa-seat-identity">
-       <div className="pa-seat-name-row">
-        <strong className="pa-seat-player-name"><ConnectionName name={p.name} offline={!p.online} bot={p.bot}/></strong>
-        {p.bot&&<span className="pa-bot-icon" role="img" aria-label="Bot" title="Bot">🤖</span>}
-        {rankPosition&&<span className="pa-seat-rank-icon" role="img" aria-label={seatRank} title={seatRank}>{rankIcon(rankPosition,rankTotal,s.mode==='asshole')}</span>}
+      <div className="pa-seat-header">
+       <div className="pa-seat-identity">
+        <div className="pa-seat-name-row">
+         {rankPosition&&<span className="pa-seat-rank-icon" role="img" aria-label={seatRank} title={seatRank}>{rankIcon(rankPosition,rankTotal,s.mode==='asshole')}</span>}
+         <strong className="pa-seat-player-name"><ConnectionName name={p.name} offline={!p.online} bot={p.bot}/></strong>
+         {p.bot&&<span className="pa-bot-icon" role="img" aria-label="Bot" title="Bot">🤖</span>}
+        </div>
        </div>
+       {game.stage==='play'&&game.currentPlayerId===p.id&&game.turnEndsAt!==undefined&&<span className={'pa-seat-timer'+(game.turnEndsAt-now+offset<=5000?' is-low':'')} role="timer" aria-label="Time left on current player's turn">{formatLeft(game.turnEndsAt,now,offset)}</span>}
       </div>
       {finish?<div className="pa-seat-finished" role="status" aria-label={`Finished as ${seatRank}`}>✓ Finished</div>:
        game.stage==='ready'?<span className="pa-seat-ready">{p.ready?'✓ Ready':'Waiting'}</span>:
