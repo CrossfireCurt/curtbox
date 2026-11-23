@@ -47,7 +47,9 @@ Later hands: start dealing with previous hand's Janitor/Asshole when still prese
 
 ## 3. Legal card plays and pile mechanics
 
-Normal combinations: **one, two, three, or four cards of a single rank**. A normal response must match the last successful play's number of cards and have a strictly higher rank, except that a same-rank, same-size response is valid and **immediately clears** the pile.
+Normal combinations: **one, two, three, or four cards of a single rank**. A normal response must match the last successful play's combination size and have a higher rank, **except a same-rank, same-size response is also legal and skips the next active player in play direction without clearing the pile**. The skipped player receives a **Skipped** animation on the presentation and their phone. **A successful Social is the exception: it clears the pile**, not a skip. The special auto-clear rules below (2s, four-of-a-kind, Double Trouble) remain independent and take precedence over an ordinary equal-rank skip.
+
+> **Implementation status:** This equal-rank skip / Social-clear correction is approved but **not yet in the game engine or UI**. As of this documentation change, current code still clears equal-rank ordinary responses. See [issue #3](https://github.com/CrossfireCurt/curtbox/issues/3); do not mark this feature complete until code and regression tests are updated.
 
 Special automatic pile clears:
 
@@ -62,7 +64,7 @@ Special clears override ordinary comparison restrictions. Cleared pile cards lea
 
 ### Optional Social
 
-Social is an out-of-turn, speed-based completion of the four cards of the **same rank represented by the latest successful play**. Valid counts are 1+3, 2+2, or 3+1, with the current/latest playing Player and completing Player distinct. The completing Player preselects their required owned cards. The Social button **appears only with a valid selection**, not after an arbitrary click. The first valid Social event the server receives wins; no artificial pause or wait window. Passing does not close the opening; a new successful card play closes the prior Social opening. A 2, four-of-a-kind, equal-rank or other immediate-clear play cannot be interrupted after its atomic server commit. Social clears and leads as above.
+Social is an out-of-turn, speed-based completion of the four cards of the **same rank represented by the latest successful play**. Valid counts are 1+3, 2+2, or 3+1, with the current/latest playing Player and completing Player distinct. The completing Player preselects their required owned cards. The Social button **appears only with a valid selection**, not after an arbitrary click. The first valid Social event the server receives wins; no artificial pause or wait window. Passing does not close the opening; a new successful card play closes the prior Social opening. A 2, four-of-a-kind or other immediate-clear play cannot be interrupted after its atomic server commit. An ordinary equal-rank play is **not** itself an automatic clear under the approved rule; a successful Social still clears and leads as above. The code change to reflect this is tracked in issue #3.
 
 The backend is the only authority for ownership, combination legality, clearing, Social collision resolution, turn/decree timestamps and finishing order.
 

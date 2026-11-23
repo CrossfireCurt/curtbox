@@ -19,3 +19,7 @@ client/public/audio/sfx/cue-*.ogg
 
 # Local GitHub release output
 release/
+
+# Devcontainer-generated credentials and local-only configuration
+.devcontainer/local.env
+.devcontainer/admin-password.local.txt

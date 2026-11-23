@@ -1,0 +1,25 @@
+# Isolated development services; never uses production Compose volumes or secrets.
+services:
+  workspace:
+    image: mcr.microsoft.com/devcontainers/javascript-node:1-22-bookworm
+    command: sleep infinity
+    volumes:
+      - ..:/workspaces/curtbox:cached
+    depends_on:
+      db:
+        condition: service_healthy
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: party
+      POSTGRES_USER: party
+      POSTGRES_PASSWORD: curtbox-dev-only
+    volumes:
+      - curtbox-codespace-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U party -d party"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+volumes:
+  curtbox-codespace-db:

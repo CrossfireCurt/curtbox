@@ -18,7 +18,7 @@
 ## President / Asshole — finalized and not to reopen
 
 - **Deck:** 4–8 Players; standard full 52-card deck; all cards dealt, uneven hands allowed. 3 low, 2 high; no suit rank.
-- **Combinations:** singles/pairs/triples/four of same rank; equal rank matching-size play clears, 2(s) clear, four-kind clears; optional Social completion 1+3 / 2+2 / 3+1, preselected and first server success; no artificial interruption period.
+- **Combinations:** singles/pairs/triples/four of same rank; **ordinary equal-rank matching-size play skips the next active player (with Skipped animations on both presenter and skipped phone), not a clear**; **successful Social clears instead**. Other independent clears (2s, four-kind, active Double Trouble) remain intact. Social completion 1+3 / 2+2 / 3+1 is preselected and first server success wins; no artificial interruption period. **Correction accepted Nov 23, 2026; engine/UI implementation still pending in [issue #3](https://github.com/CrossfireCurt/curtbox/issues/3).**
 - **First lead:** host-selected opening card, default 4♣, must be included in the first play. Later leads start from previous Janitor/Asshole when present, otherwise lowest available ranked Player.
 - **Direction:** default clockwise; reverse-dealing and reverse-playing are independent decrees.
 - **Seating:** initial joining order; Rank-Based Seating only while decree active; repealing freezes current arrangement, not a rewind.

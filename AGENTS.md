@@ -1,3 +1,4 @@
+<!-- Latest repository authority update: 2026-11-23. Read docs/DEVELOPMENT_WORKFLOW.md and docs/ROADMAP.md alongside game specifications. -->
 # Curtbox — instructions for coding agents
 
 Read this file first. This repository is a multi-game, self-hosted party-game application. **Curtbox** is the platform; **Survey Show** and **President / Asshole** are separate games. The Nov 23 2026 work adds President / Asshole to the existing Survey Show archive without breaking the first game.
@@ -54,3 +55,10 @@ The repository includes `.github/workflows/ci.yml` (checks and `:main` image) an
 IMPORTANT: Original ZIP lacks `package-lock.json`. Have the owner run `npm install` on their networked machine, validate build, and commit the lockfile; CI and Docker switch to `npm ci` automatically. Keep `.env` and database dumps out of Git. Do not change Compose project name or remove the `party_db` named volume when switching from `docker-compose.yml` to `compose.ghcr.yml`. Tags represent releases; main branches publish a development image only after checks pass. Do not pretend the CI config has actually passed in GitHub before it runs there.
 
 **Remaining queued requests, not implemented:** smoother ongoing source collaboration (Virtual Code or another tool), Android TV host APK with configurable server URL, disconnected-player warning icons in both host presentations (never shown for bots).
+
+## Connected GitHub collaboration and accepted rule correction (November 23, 2026)
+
+- Canonical repo: `CrossfireCurt/curtbox`; work on feature branches and open pull requests rather than exchanging full ZIP archives. GitHub Actions on `main` passed its first real build and published `ghcr.io/crossfirecurt/curtbox:main`. Earlier notes in this file saying remote GitHub/CI has not been tested are **historical** and superseded by this dated paragraph. See `docs/DEVELOPMENT_WORKFLOW.md` for ready-to-use Codespaces / VS Code steps.
+- GitHub issues are the durable feature backlog; see `docs/ROADMAP.md` for ordered work and [issues](https://github.com/CrossfireCurt/curtbox/issues).
+- **Approved rule correction:** Ordinary equal-rank, matching-size play **skips the next active player** and displays **Skipped** on the public presenter plus skipped player's phone. **A successful Social clears the pile instead.** Special clears (2s, four-of-a-kind, active Double Trouble) remain independent. **Current game code has not yet been updated** and still clears on ordinary equal rank. Implement and test under issue #3; never silently interpret a Social as a skip.
+- Other open issues: #1 Android TV APK, #2 disconnect indicators, #4 pile legibility, #5 pile history, #6 same-rank selection, #7 bot think-time variation, #8 ranked ready screen/stats. None of those features are implemented by the Codespaces setup.
