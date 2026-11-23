@@ -134,8 +134,15 @@ test('rank completion awards exactly one presidency and scores streaks',()=>{
  for(const id of ids)g.hands[id]=id==='p3'?['9S']:['10S'];
  g.turn='p3';g.pile=[];g.lastClear={by:'p3',cards:[],reason:'forced',at:1000,serial:0};
  playPA(r,'p3',['9S'],2000);
- assert.equal(g.stage,'ready');assert.deepEqual(g.handRanks.map(x=>x.id),['p1','p2','p3','p4']);
+ assert.equal(g.stage,'finale');assert.deepEqual(g.handRanks.map(x=>x.id),['p1','p2','p3','p4']);
+ assert.equal(g.finaleStartedAt,2000);
+ assert.equal(g.finaleNextStage,'ready');
+ assert.equal(g.stageEndsAt,2000+1800+4*800+10000);
  assert.equal(g.presidencies['p1'],1);assert.equal(g.streaks['p1'],1);
+ assert.throws(()=>readyPA(r,'p1',true,2001),/cannot ready up/i);
+ advancePA(r,g.stageEndsAt!-1);assert.equal(g.stage,'finale');
+ advancePA(r,g.stageEndsAt!);assert.equal(g.stage,'ready');
+ assert.equal(g.presidencies['p1'],1,'the reveal must not award another presidency');
 });
 
 test('all action deadlines and maximum active cap honor the limit, including self',()=>{
@@ -532,7 +539,7 @@ test('server-owned result counters track Social, special clears, cards, passes a
  // Finish with an archived last pile; preserve completed hand stats for ready screen.
  g.finished=['p1','p2','p3'];g.turn='p4';g.hands.p4=['8C'];g.pile=[];g.pilePlays=[];g.lastPlay=undefined;
  playPA(r,'p4',['8C'],1200);
- assert.equal(g.stage,'ready');
+ assert.equal(g.stage,'finale');
  const host=publicPA(r,{id:'host',role:'host'} as Participant)!;
  const phone=publicPA(r,r.participants[0])!;
  assert.equal(host.handStats.p2.socials,1);
@@ -545,9 +552,12 @@ test('server-owned result counters track Social, special clears, cards, passes a
  r.participants=r.participants.filter(x=>x.id!=='p2');
  assert.ok(publicPA(r,{id:'host',role:'host'} as Participant)?.handRanks.some(p=>p.id==='p2'));
  assert.equal(g.playerStats?.p2?.socials,1);
- // New hand can start with remaining players and an additional bot.
+ // New hand starts only after the finale returns players to Ready.
  configurePA(r,{botCount:1});
- for(const p of r.participants)readyPA(r,p.id,true,1400);
+ assert.throws(()=>readyPA(r,'p1',true,1400),/cannot ready up/i);
+ const afterReveal=g.stageEndsAt!+1;
+ advancePA(r,afterReveal);assert.equal(g.stage,'ready');
+ for(const p of r.participants)readyPA(r,p.id,true,afterReveal+100);
  assert.equal(g.handNumber,2);
  assert.equal(g.handStats?.p2,undefined,'new hand counters reset');
  assert.equal(g.playerStats?.p2?.socials,1,'all-time counters survive');
@@ -637,7 +647,7 @@ test('Social ending the hand keeps Social history, stats, and group prompts',()=
  g.lastPlay={player:'p2',rank:7,count:1,cards:['10D'],serial:42};
  g.hands.p3=['10H','10S'];
  playPA(r,'p3',['10H','10S'],2000,false);
- assert.equal(g.stage,'ready');
+ assert.equal(g.stage,'finale');
  assert.equal(g.lastClear?.reason,'Social');assert.equal(g.pileHistory?.at(-1)?.reason,'Social');
  assert.equal(g.handStats?.p3?.socials,1);
  for(const p of r.participants)assert.equal(g.drinking[p.id]?.length,1);
@@ -795,4 +805,52 @@ test('Game over finale still requires controller and no four-player active table
  r.participants=r.participants.filter(p=>p.id!=='p4');
  endPA(r,'p1',1000);
  assert.equal(r.pa!.stage,'finale');
+});
+
+test('hand finale defers a due Presidential Decree until after the ranking reveal',()=>{
+ const r=fixture(),g=r.pa!;
+ for(let i=1;i<=4;i++)readyPA(r,`p${i}`,true,1000);
+ g.handNumber=2;g.streaks.p1=1;
+ r.paSettings!.consecutiveForDecree=2;
+ g.finished=['p1','p2','p3'];
+ g.turn='p4';g.hands.p4=['8D'];g.pile=[];g.lastPlay=undefined;
+ g.lastClear={by:'p1',cards:[],reason:'fixture',at:0,serial:0};
+ playPA(r,'p4',['8D'],2000);
+ assert.equal(g.stage,'finale');
+ assert.equal(g.finaleNextStage,'decree');
+ assert.equal(g.pendingPresident,'p1');
+ assert.equal(g.presidencies.p1,1);
+ const deadline=g.stageEndsAt!;
+ advancePA(r,deadline-1);assert.equal(g.stage,'finale');
+ advancePA(r,deadline);
+ assert.equal(g.stage,'decree');
+ assert.equal(g.pendingPresident,'p1');
+ assert.equal(g.stageEndsAt,deadline+r.paSettings!.decreeSeconds*1000);
+ decreePA(r,'p1',undefined,undefined,deadline+1);
+ assert.equal(g.stage,'ready');
+});
+
+test('every completed hand runs one finale and later hands get a fresh reveal timestamp',()=>{
+ const r=fixture(),g=r.pa!;
+ for(let i=1;i<=4;i++)readyPA(r,`p${i}`,true,1000);
+ g.finished=['p1','p2','p3'];g.turn='p4';g.hands.p4=['8D'];
+ g.lastClear={by:'p1',cards:[],reason:'fixture',at:0,serial:0};
+ playPA(r,'p4',['8D'],2000);
+ assert.equal(g.stage,'finale');
+ assert.equal(g.finaleStartedAt,2000);
+ const firstEnd=g.stageEndsAt!;
+ advancePA(r,firstEnd);
+ assert.equal(g.stage,'ready');
+ assert.equal(g.finaleNextStage,undefined);
+ for(let i=1;i<=4;i++)readyPA(r,`p${i}`,true,firstEnd+100);
+ assert.equal(g.stage,'play');
+ assert.equal(g.handNumber,2);
+ assert.equal(g.finaleStartedAt,undefined);
+ g.finished=['p1','p2','p3'];g.turn='p4';g.hands.p4=['8D'];
+ g.pile=[];g.lastPlay=undefined;
+ g.lastClear={by:'p1',cards:[],reason:'fixture',at:0,serial:0};
+ playPA(r,'p4',['8D'],firstEnd+250);
+ assert.equal(g.stage,'finale');
+ assert.equal(g.finaleStartedAt,firstEnd+250);
+ assert.ok(g.stageEndsAt!>firstEnd);
 });
