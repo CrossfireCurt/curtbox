@@ -5,10 +5,10 @@ import {startPresidentAmbient,type AmbientMusic} from './presidentAmbientMusic';
 import {newPresidentSoundCues,presidentSoundCues,type PACueKind} from './presidentSoundEvents';
 
 const prefKey='curtbox.pa.effects';
-// CC0 recording: two tankards clink in a toast (SFXMint).
-// https://sfxmint.com/sounds/tavern-ambience-05
-// The publisher explicitly permits linking to the MP3 from other sites.
-const socialCheersUrl='https://sfxmint.com/dl/tavern-ambience-05.mp3';
+// Mixkit "Male crowd cheering short" (#459), Sound Effects Free License.
+// Downloaded at package/build time (not committed with source files).
+// https://mixkit.co/free-sound-effects/crowd/
+const socialCheersUrl='/audio/sfx/mixkit-social-cheer-459.mp3';
 function preference(){
  try{return window.localStorage.getItem(prefKey)!=='off';}catch{return true;}
 }
@@ -119,8 +119,8 @@ export function usePresidentSounds(view:RoomView,now:number,offset:number){
   for(const cue of fresh){
    try{
     if(cue.kind==='social'&&cheersMedia.current){
-     // Play a licensed real-world toast. A blocked/unavailable media stream
-     // falls back to the original local synthesized cheer.
+     // Play the locally installed Mixkit crowd cheer. Development builds without
+     // that optional asset fall back to the original synthesized cheer.
      const media=cheersMedia.current;
      media.pause();media.currentTime=0;
      void media.play().catch(()=>{
