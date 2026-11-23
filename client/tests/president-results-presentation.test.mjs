@@ -25,3 +25,19 @@ test('completed-hand results are responsive and not cramped into the table sideb
  assert.match(css,/@media\(max-width:800px\)/);
  assert.match(ui,/className="pa-result-emblem"/);
 });
+
+test('presenter removes large top headings but preserves small hand and ready context',()=>{
+ assert.doesNotMatch(ui,/<h1>\{resultsTakeover/);
+ assert.doesNotMatch(ui,/<h2>Last hand<\/h2>/);
+ assert.match(ui,/className="pa-stage-head"/);
+ assert.match(ui,/HAND \{game\.handNumber\} COMPLETE/);
+});
+test('two latest cleared piles are horizontal and ordered oldest left / newest right',()=>{
+ assert.match(ui,/const clearedHistory=\(game\.pileHistory\?\?\[\]\)\.slice\(-2\)/);
+ const table=ui.indexOf('className="pa-table-area"');
+ const history=ui.indexOf('className="panel pa-pile-history"');
+ const aside=ui.indexOf('className="pa-aside"');
+ assert.ok(table>=0&&history>table&&aside>history);
+ assert.match(css,/\.pa-table-area \.pa-history-list\{display:grid;grid-template-columns:repeat\(2/);
+ assert.match(ui,/game\.names\[entry\.by\].*cleared/);
+});
