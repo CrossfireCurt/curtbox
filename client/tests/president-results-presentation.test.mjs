@@ -7,7 +7,7 @@ const root=resolve(dirname(fileURLToPath(import.meta.url)),'../..');
 const read=p=>readFileSync(resolve(root,p),'utf8');
 const ui=read('client/src/PresidentAsshole.tsx'),css=read('client/src/styles.css');
 test('ready after a hand and finished game replaces table with full Last hand',()=>{
- assert.match(ui,/const resultsTakeover=game\.handRanks\.length>0&&\(game\.stage==='ready'\|\|game\.stage==='ended'\)/);
+ assert.match(ui,/const resultsTakeover=game\.handRanks\.length>0&&\(game\.stage==='ready'\|\|game\.stage==='ended'\)&&!socialPreview/);
  assert.match(ui,/resultsTakeover\?<section className="pa-results-screen"/);
  assert.match(ui,/<HandResults game=\{game\} asshole=\{s\.mode==='asshole'\}\/>/);
  assert.match(ui,/:<div className="pa-stage-columns"/);
@@ -16,7 +16,7 @@ test('ready after a hand and finished game replaces table with full Last hand',(
 });
 test('first lobby and active play still show the ordinary circular table',()=>{
  assert.match(ui,/game\.handRanks\.length>0/);
- assert.match(ui,/game\.stage==='play'\?<><div className="pa-pile"/);
+ assert.match(ui,/\(game\.stage==='play'\|\|socialPreview\)\?<><div className="pa-pile"/);
  assert.match(ui,/className="pa-table-ring"/);
 });
 test('completed-hand results are responsive and not cramped into the table sidebar',()=>{

@@ -115,7 +115,11 @@ test('time-out pass is not drinking, manual pass is; acknowledgment gating appli
  next=g.turn!;const when=g.turnEndsAt!;advancePA(r,when+1);
  assert.equal(g.drinking[next],undefined);
  g.stage='decree';g.pendingPresident='p1';setDecree(r,'require_ack');g.drinking['p1']=['Drink prompt'];
- assert.throws(()=>decreePA(r,'p1',undefined,undefined,when+2),/Acknowledge/);
+ (g.drinkEvents??={})['p1']={serial:12,at:when+1};
+ assert.throws(()=>decreePA(r,'p1',undefined,undefined,when+2),/Drink notification in progress/);
+ // The reminder expires automatically; no acknowledgment action or prompt click.
+ decreePA(r,'p1',undefined,undefined,when+3000);
+ assert.deepEqual(g.drinking['p1'],[]);
 });
 
 test('turn timeout when leading auto-plays rather than passing an empty pile',()=>{
@@ -568,7 +572,7 @@ test('sound event snapshots expose card/clear only to presenter and targeted dri
  phone=publicPA(r,r.participants[1])!;
  assert.equal(board.myDrinkEvent,undefined);
  assert.equal(phone.myDrinkEvent?.at,2002);
- assert.equal(phone.myPendingDrinks?.length,2);
+ assert.equal(phone.myPendingDrinks?.length,1,'latest prompt only; no manual acknowledgment history');
  assert.equal(publicPA(r,r.participants[0])?.myDrinkEvent?.at,2001);
  assert.equal(publicPA(r,r.participants[2])?.myDrinkEvent?.at,2002);
  const serial=phone.myDrinkEvent?.serial;
@@ -711,4 +715,44 @@ test('pass overlay event attributes an accepted pass, never rejected attempts, t
  assert.equal(g.lastClear?.reason,'Everyone passed');
  assert.equal(g.lastPass?.by,third,'final accepted pass still animates after clearing pile');
  assert.equal(g.lastPass?.at,1005);
+});
+
+test('Require Acknowledgment never holds old persisted drink prompts indefinitely',()=>{
+ const r=fixture(),g=r.pa!;for(let i=1;i<=4;i++)readyPA(r,`p${i}`,true,1000);
+ g.stage='decree';g.pendingPresident='p1';setDecree(r,'require_ack');
+ g.drinking['p1']=['legacy pending notification'];
+ assert.equal(g.drinkEvents?.p1,undefined);
+ decreePA(r,'p1',undefined,undefined,3000);
+ assert.deepEqual(g.drinking.p1,[]);
+});
+test('drinking events update last cue instead of growing unacknowledged notifications',()=>{
+ const r=fixture(),g=r.pa!;r.paSettings!.mode='asshole';
+ for(let i=1;i<=4;i++)readyPA(r,`p${i}`,true,1000);
+ const first=g.turn!;
+ g.hands[first]=['4C','9C'];g.lastClear={by:first,cards:[],reason:'setup',at:0,serial:0};
+ playPA(r,first,['4C'],1001);
+ const passer=g.turn!;
+ passPA(r,passer,1002,true);
+ const previous=publicPA(r,r.participants.find(x=>x.id===passer)!)?.myDrinkEvent?.serial;
+ // Another manual Pass=Drink can occur after returning to the same player.
+ g.turn=passer;g.passed=[];g.pile=['9C'];g.pileOwner=first;g.pileRank=6;
+ passPA(r,passer,1003,true);
+ assert.ok((g.drinkEvents?.[passer]?.serial??0)>(previous??0));
+ assert.deepEqual(g.drinking[passer],['Pass = Drink']);
+});
+
+test('Social in President mode also sends minimal visual cheer to phones, without drinking or pile disclosure',()=>{
+ const r=fixture(),g=r.pa!;r.paSettings!.mode='president';
+ for(let i=1;i<=4;i++)readyPA(r,`p${i}`,true,1000);
+ g.turn='p1';g.lastClear={by:'p1',cards:[],reason:'fixture',at:0,serial:0};
+ g.hands.p1=['7C','7D','7H','7S','KC'];
+ playPA(r,'p1',['7C','7D','7H','7S'],2000);
+ assert.equal(g.lastClear?.reason,'Social');
+ const presenter=publicPA(r,{id:'host',role:'host'} as Participant)!;
+ const phone=publicPA(r,r.participants[1])!;
+ assert.equal(presenter.mySocialEvent,undefined,'host uses its full lastClear snapshot');
+ assert.equal(phone.mySocialEvent?.at,2000);
+ assert.equal(phone.mySocialEvent?.serial,g.lastClear?.serial);
+ assert.equal(phone.lastClear,undefined,'phone never sees the cleared cards');
+ assert.equal(phone.myDrinkEvent,undefined,'President mode cheer does not request drinking');
 });

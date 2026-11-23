@@ -16,13 +16,14 @@ test('skip is rendered on presenter seat and affected phone, not every player',(
  assert.match(ui,/activeSkip\?\.skipped===p\.id/);
  assert.match(ui,/activeSkip\?\.skipped===view\.me\.id/);
  assert.match(ui,/className="pa-skipped-seat"/);
- assert.match(ui,/className="pa-skipped-phone"/);
+ assert.match(ui,/className="pa-hand-event-overlay is-skip" role="status" aria-label="You were skipped">⏭️/);
  assert.match(ui,/key=\{activeSkip\.serial\}/);
  assert.match(ui,/now-offset>=game\.lastSkip\.at/);
 });
 test('skip animations have a reduced-motion option',()=>{
  const css=read('client/src/styles.css');
  assert.match(css,/\.pa-skipped-seat/);
- assert.match(css,/\.pa-skipped-phone/);
+ assert.match(css,/\.pa-hand-event-overlay\.is-skip/);
+ assert.doesNotMatch(css,/\.pa-skipped-phone\{/);
  assert.match(css,/@media\(prefers-reduced-motion:reduce\)\{\.pa-skipped-seat/);
 });

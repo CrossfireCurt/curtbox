@@ -61,7 +61,7 @@ export interface PAPublic {
   pilePlays?:PAPilePlay[];pileHistory?:PAClearedPile[];
   lastClear?:PAState['lastClear'];lastSkip?:PAState['lastSkip'];lastPass?:PAState['lastPass'];
   /** Presenter card sound event and private affected-player drink cue. */
-  lastPlayed?:PAState['lastPlayed'];myDrinkEvent?:{serial:number;at:number};
+  lastPlayed?:PAState['lastPlayed'];myDrinkEvent?:{serial:number;at:number};mySocialEvent?:{serial:number;at:number};
   event?:string;activeDecrees:PADecree[];
   handRanks:PARank[];previousRanks:PARank[];myHand?:PACard[];myReady?:boolean;inHand?:boolean;myFinished?:boolean;
   myExchange?:{count:number;original:PACard[];selected?:PACard[]};
