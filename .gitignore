@@ -16,6 +16,8 @@ assets/reaction-raw/*
 # Media downloaded by the optional audio fetch script (generated assets are separately curated)
 client/public/audio/music/
 client/public/audio/sfx/cue-*.ogg
+# Licensed Mixkit download is installed during packaging; never commit the raw sound with source files.
+client/public/audio/sfx/mixkit-social-cheer-459.mp3
 
 # Local GitHub release output
 release/
