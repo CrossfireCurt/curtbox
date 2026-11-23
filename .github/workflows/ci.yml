@@ -40,6 +40,8 @@ jobs:
         run: npm run test:pure
       - name: Audio archive regression tests
         run: npm run test:audio
+      - name: Branch cleanup safety tests
+        run: npm run test:branch-cleanup
       - name: Production build
         run: npm run build
       - name: Package compiled app

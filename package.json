@@ -18,7 +18,8 @@
     "audio:reactions": "node scripts/install-reaction-audio.mjs",
     "test:president:pure": "node scripts/test-president-pure.mjs",
     "test:pure": "node scripts/test-core-pure.mjs",
-    "test:audio": "node --test scripts/test-audio-archive.mjs"
+    "test:audio": "node --test scripts/test-audio-archive.mjs",
+    "test:branch-cleanup": "node --test scripts/test-branch-cleanup.mjs"
   },
   "devDependencies": {
     "concurrently": "^9.1.2",
