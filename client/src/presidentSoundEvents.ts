@@ -8,16 +8,20 @@ export function presidentSoundCues({game,role,playerId,now,offset,turnSeconds}:C
  const serverNow=now-offset;
  const cues:PASoundCue[]=[];
  const fresh=(at:number)=>at<=serverNow+1200&&serverNow-at<=3100;
- if(game.stage!=='play')return cues;
+ // A finishing Social can put the room into Ready *before* the new snapshot
+ // reaches clients. Play its host cheer/clear and targeted drink regardless.
  if(role==='host'){
-  if(game.lastPlayed&&fresh(game.lastPlayed.at))cues.push({kind:'card',key:`card:${game.lastPlayed.serial}`});
+  if(game.stage==='play'&&game.lastPlayed&&fresh(game.lastPlayed.at))cues.push({kind:'card',key:`card:${game.lastPlayed.serial}`});
   if(game.lastClear&&fresh(game.lastClear.at)){
    if(game.lastClear.reason==='Social')cues.push({kind:'social',key:`social:${game.lastClear.serial}`});
    cues.push({kind:'clear',key:`clear:${game.lastClear.serial}`});
   }
-  if(game.lastSkip&&fresh(game.lastSkip.at))cues.push({kind:'skip',key:`skip:${game.lastSkip.serial}`});
+  if(game.stage==='play'&&game.lastSkip&&fresh(game.lastSkip.at))cues.push({kind:'skip',key:`skip:${game.lastSkip.serial}`});
   return cues;
  }
+ if(game.myDrinkEvent&&fresh(game.myDrinkEvent.at))
+  cues.push({kind:'drink',key:`drink:${game.myDrinkEvent.serial}`});
+ if(game.stage!=='play')return cues;
  if(game.currentPlayerId===playerId&&game.turnEndsAt!==undefined){
   const start=game.turnEndsAt-turnSeconds*1000,age=serverNow-start,remaining=game.turnEndsAt-serverNow;
   if(age>=-500&&age<=2500)cues.push({kind:'turn',key:`turn:${game.turnEndsAt}:${playerId}`});
@@ -26,8 +30,6 @@ export function presidentSoundCues({game,role,playerId,now,offset,turnSeconds}:C
  }
  if(game.lastSkip?.skipped===playerId&&fresh(game.lastSkip.at))
   cues.push({kind:'skip',key:`skip:${game.lastSkip.serial}`});
- if(game.myDrinkEvent&&fresh(game.myDrinkEvent.at))
-  cues.push({kind:'drink',key:`drink:${game.myDrinkEvent.serial}`});
  return cues;
 }
 /** Mark each authoritative cue once; cap memory across long sessions. */

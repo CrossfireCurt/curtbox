@@ -572,7 +572,7 @@ test('sound event snapshots expose card/clear only to presenter and targeted dri
  phone=publicPA(r,r.participants[1])!;
  assert.equal(board.myDrinkEvent,undefined);
  assert.equal(phone.myDrinkEvent?.at,2002);
- assert.equal(phone.myPendingDrinks?.length,2);
+ assert.equal(phone.myPendingDrinks?.length,1,'latest prompt only; no manual acknowledgment history');
  assert.equal(publicPA(r,r.participants[0])?.myDrinkEvent?.at,2001);
  assert.equal(publicPA(r,r.participants[2])?.myDrinkEvent?.at,2002);
  const serial=phone.myDrinkEvent?.serial;

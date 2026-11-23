@@ -56,3 +56,10 @@ test('audio is user-controllable and generated locally rather than fetched',()=>
  assert.doesNotMatch(synthesized,/\.ogg|\.mp3|https:\/\//);
  assert.match(audio,/\/audio\/music\//);
 });
+
+test('finishing Social cheers/clears and glass clink survive transition into Ready',()=>{
+ const social={stage:'ready',lastClear:{serial:24,at:9200,by:'p2',reason:'Social',cards:['9C','9D','9H','9S']},myDrinkEvent:{serial:25,at:9200}};
+ assert.deepEqual(kinds(cues(social,'host','host',10000)),['social','clear']);
+ assert.deepEqual(kinds(cues(social,'player','p3',10000)),['drink']);
+ assert.deepEqual(kinds(cues(social,'player','p3',13000)),[]);
+});
