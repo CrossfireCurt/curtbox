@@ -101,7 +101,7 @@ function beginHand(r:RoomState,now:number){
   for(const id of [...ranked(g,ids)].reverse().slice(0,extra))deficits[id]++;
   while(cards.length){for(const id of dealOrder)if(deficits[id]>0){hands[id].push(cards.pop()!);deficits[id]--;}}
  }else{let n=0;while(cards.length)hands[dealOrder[n++%dealOrder.length]].push(cards.pop()!);}
- g.handNumber=newHand;g.hands=hands;g.active=ids;g.ready=[];g.finished=[];g.handRanks=[];g.passed=[];g.pile=[];g.pileOwner=undefined;g.pileRank=undefined;g.lastPlay=undefined;g.lastClear=undefined;g.lastSkip=undefined;g.lastPlayed=undefined;g.pilePlays=[];g.pileHistory=[];g.handStats={};g.serial++;
+ g.handNumber=newHand;g.hands=hands;g.active=ids;g.ready=[];g.finished=[];g.handRanks=[];g.passed=[];g.pile=[];g.pileOwner=undefined;g.pileRank=undefined;g.lastPlay=undefined;g.lastClear=undefined;g.lastSkip=undefined;g.lastPass=undefined;g.lastPlayed=undefined;g.pilePlays=[];g.pileHistory=[];g.handStats={};g.serial++;
  const leader=newHand===1?ids.find(id=>hands[id].includes(s.openingCard)):low;
  chooseLead(g,leader);g.turnEndsAt=now+s.turnSeconds*1000;g.stage='play';g.event=`Hand ${newHand} dealt`;
  g.exchange=[];
@@ -255,6 +255,9 @@ export function passPA(r:RoomState,id:string,now=Date.now(),manual=true){
  if(!g.pile.length)throw Error('You must lead when the pile is empty.');
  if(manual&&!isBot(r,id)&&r.paSettings!.mode==='asshole')notifyDrink(g,id,'Pass = Drink',now);
  addStat(g,id,'passes');
+ // Persist the accepted pass as an authoritative short-lived presenter cue.
+ // Keep it through an Everyone-passed clear so that last pass still animates.
+ g.lastPass={by:id,at:now,serial:++g.serial};
  g.passed=uniq([...g.passed,id]);
  const others=g.active.filter(x=>!g.finished.includes(x)&&x!==g.pileOwner);
  if(others.every(x=>g.passed.includes(x))){const leader=g.pileOwner!;clear(g,leader,'Everyone passed',now);g.turnEndsAt=now+r.paSettings!.turnSeconds*1000;}
@@ -502,7 +505,7 @@ export function publicPA(r:RoomState,me:Participant):PAPublic|undefined{
   pile:host?[...g.pile]:undefined,pileOwner:host?g.pileOwner:undefined,
   pilePlays:host?pilePlays(g).map(p=>({...p,cards:[...p.cards]})):undefined,
   pileHistory:host?(g.pileHistory??[]).map(h=>({...h,cards:[...h.cards],plays:h.plays.map(p=>({...p,cards:[...p.cards]}))})):undefined,
-  lastClear:host?g.lastClear:undefined,lastSkip:g.lastSkip,
+  lastClear:host?g.lastClear:undefined,lastSkip:g.lastSkip,lastPass:host?g.lastPass:undefined,
    lastPlayed:host?g.lastPlayed:undefined,myDrinkEvent:!host?g.drinkEvents?.[myId]:undefined,event:g.event,
   activeDecrees:g.decrees,handRanks:g.handRanks,previousRanks:g.previousRanks,
   myHand:!host?[...(g.hands[myId]??[])].sort((a,b)=>order(a)-order(b)):undefined,myReady:g.ready.includes(myId),inHand:g.active.includes(myId),myFinished:g.finished.includes(myId),

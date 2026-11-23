@@ -684,3 +684,31 @@ test('issued skip stats migrate legacy rows and do not count the skipped victim'
  assert.equal(g.playerStats?.[q]?.cardsPlayed,5);
  assert.equal(g.handStats?.[victim]?.skips??0,0);
 });
+
+test('pass overlay event attributes an accepted pass, never rejected attempts, to presenter only',()=>{
+ const r=fixture(),g=r.pa!;
+ for(let i=1;i<=4;i++)readyPA(r,`p${i}`,true,1000);
+ const leadId=g.turn!,first=g.hands[leadId].find(c=>c==='4C')!;
+ assert.throws(()=>passPA(r,leadId,1000,true),/pile is empty/);
+ assert.equal(g.lastPass,undefined);
+ playPA(r,leadId,[first],1001);
+ const passer=g.turn!;
+ passPA(r,passer,1002,true);
+ assert.equal(g.lastPass?.by,passer);
+ assert.equal(g.lastPass?.at,1002);
+ const firstSerial=g.lastPass!.serial;
+ assert.equal(publicPA(r,{id:'host',role:'host'} as Participant)?.lastPass?.by,passer);
+ assert.equal(publicPA(r,r.participants[0])?.lastPass,undefined);
+ assert.throws(()=>passPA(r,passer,1003,true),/Not your turn/);
+ assert.equal(g.lastPass?.serial,firstSerial);
+ const second=g.turn!;
+ passPA(r,second,1004,false);
+ assert.equal(g.lastPass?.by,second,'automatic passes also get presenter overlay');
+ assert.equal(g.lastPass?.at,1004);
+ assert.ok(g.lastPass!.serial>firstSerial);
+ const third=g.turn!;
+ passPA(r,third,1005,true);
+ assert.equal(g.lastClear?.reason,'Everyone passed');
+ assert.equal(g.lastPass?.by,third,'final accepted pass still animates after clearing pile');
+ assert.equal(g.lastPass?.at,1005);
+});

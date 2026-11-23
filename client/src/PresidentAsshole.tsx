@@ -124,6 +124,10 @@ export function PresidentAsshole({view,now,offset,onAction,settingsOpen=false,on
  const activeSkip=game.stage==='play'&&game.lastSkip
   &&now-offset>=game.lastSkip.at-500&&now-offset<game.lastSkip.at+2200
   ?game.lastSkip:undefined;
+ // Same authoritative event-window pattern as skips; distinct blue treatment.
+ const activePass=game.stage==='play'&&game.lastPass
+  &&now-offset>=game.lastPass.at-500&&now-offset<game.lastPass.at+2200
+  ?game.lastPass:undefined;
  const scoreboard=[...Object.entries(game.presidencies)].sort((a,b)=>b[1]-a[1]||(game.longestStreak[b[0]]??0)-(game.longestStreak[a[0]]??0));
  return host?<section className="pa-stage" aria-label="President / Asshole public presentation">
   <div className="pa-stage-head"><div className="section-kicker">{s.mode==='asshole'?'ASSHOLE':'PRESIDENT'} · HAND {game.handNumber||'—'}</div><div className="pa-clock">{formatLeft(game.stage==='play'?game.turnEndsAt:game.stageEndsAt,now,offset)}</div></div>
@@ -154,11 +158,15 @@ export function PresidentAsshole({view,now,offset,onAction,settingsOpen=false,on
        </div>
        {game.stage==='play'&&game.currentPlayerId===p.id&&game.turnEndsAt!==undefined&&<span className={'pa-seat-timer'+(game.turnEndsAt-now+offset<=5000?' is-low':'')} role="timer" aria-label="Time left on current player's turn">{formatLeft(game.turnEndsAt,now,offset)}</span>}
       </div>
-      {finish?<div className="pa-seat-finished" role="status" aria-label={`Finished as ${seatRank}`}>✓ Finished</div>:
+      {finish?<div className="pa-seat-finished" role="status" aria-label={`Finished as ${seatRank}`}>
+       <strong className="pa-finished-label">Finished</strong>
+       <span className="pa-finished-rank" role="img" aria-label={seatRank}>{rankIcon(finish,game.handPlayerCount,s.mode==='asshole')}</span>
+      </div>:
        game.stage==='ready'?<span className="pa-seat-ready">{p.ready?'✓ Ready':'Waiting'}</span>:
        p.nextHand?<span className="pa-seat-ready">Next hand</span>:
        <FaceDownCardStack count={p.cards}/>}
       {activeSkip?.skipped===p.id&&<span key={activeSkip.serial} className="pa-skipped-seat" role="status">SKIPPED</span>}
+      {activePass?.by===p.id&&<span key={activePass.serial} className="pa-passed-seat" role="status">PASSED</span>}
      </div>;
     })}
    </div>
