@@ -33,7 +33,7 @@ function FaceDownCardStack({count}:{count:number}){
 function PhoneHandOverlays({social,drink,skip,mode}:{social?:PAPublic['mySocialEvent'];drink?:PAPublic['myDrinkEvent'];skip?:PAPublic['lastSkip'];mode:PASettings['mode']}){
  return <>
   {social?<span key={`social-${social.serial}`} className="pa-hand-event-overlay is-drink" role="status" aria-label="Social!"><span className="pa-event-emoji" aria-hidden="true">{mode==='president'?'🎉':'🍻'}</span><strong className="pa-event-label">SOCIAL!</strong></span>
-   :drink&&<span key={`drink-${drink.serial}`} className="pa-hand-event-overlay is-drink" role="status" aria-label="Drink">🍻</span>}
+   :drink&&<span key={`drink-${drink.serial}`} className="pa-hand-event-overlay is-drink" role="status" aria-label="Drink!"><span className="pa-event-emoji" aria-hidden="true">🍻</span><strong className="pa-event-label">DRINK!</strong></span>}
   {skip&&<span key={`skip-${skip.serial}`} className="pa-hand-event-overlay is-skip" role="status" aria-label="You were skipped"><span className="pa-event-emoji" aria-hidden="true">⏭️</span><strong className="pa-event-label">SKIPPED!</strong></span>}
  </>;
 }
