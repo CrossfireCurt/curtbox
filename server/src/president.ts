@@ -535,6 +535,7 @@ export function publicPA(r:RoomState,me:Participant):PAPublic|undefined{
  }:undefined;
  return {stage:g.stage,handNumber:g.handNumber,seats:seats.map(id=>({id,name:g.names[id]??player(r,id)?.name??'Player',cards:g.hands[id]?.length??0,position:g.previousRanks.find(x=>x.id===id)?.position,finishedPosition:finishPosition(id),online:player(r,id)?.online??false,ready:isBot(r,id)||g.ready.includes(id),bot:isBot(r,id),nextHand:g.stage!=='ready'&&!g.active.includes(id)})),
   currentPlayerId:g.turn,turnEndsAt:g.turnEndsAt,stageEndsAt:g.stageEndsAt,finaleStartedAt:g.finaleStartedAt,
+  finaleIsGameOver:g.stage==='finale'&&g.finaleNextStage==='ended',
   handPlayerCount,myFinishPosition:!host?finishPosition(myId):undefined,playRule,
   pile:host?[...g.pile]:undefined,pileOwner:host?g.pileOwner:undefined,
   pilePlays:host?pilePlays(g).map(p=>({...p,cards:[...p.cards]})):undefined,

@@ -61,18 +61,18 @@ function HandResults({game,asshole,viewerId}:{game:PAPublic;asshole:boolean;view
  </div>;
 }
 /** A synchronized TV-first finale: the lowest rank enters first, the President last. */
-function GameOverFinale({game,asshole,now,offset}:{game:PAPublic;asshole:boolean;now:number;offset:number}){
+function RankingsFinale({game,asshole,now,offset}:{game:PAPublic;asshole:boolean;now:number;offset:number}){
  const start=game.finaleStartedAt??now-offset;
  const serverNow=now-offset;
  const ranks=[...game.handRanks].sort((a,b)=>a.position-b.position);
  const revealed=paFinaleVisibleRanks(start,serverNow,ranks.length);
  const visible=ranks.slice(Math.max(0,ranks.length-revealed));
  const revealDone=serverNow>=paFinaleRevealEndsAt(start,ranks.length);
- return <section className="pa-finale-screen" aria-label="Game over finale">
+ return <section className="pa-finale-screen" aria-label={game.finaleIsGameOver?"Game over finale":"Round over finale"}>
   <div className="pa-finale-heading">
    <div className="section-kicker">THE FINAL RANKINGS · {game.handNumber? `HAND ${game.handNumber}`:'PRESIDENT / ASSHOLE'}</div>
-   <h1>GAME OVER!</h1>
-   <p>One last look at the table.</p>
+   <h1>{game.finaleIsGameOver?'GAME OVER!':'ROUND OVER!'}</h1>
+   <p>{game.finaleIsGameOver?'One last look at the table.':'Here’s how the round finished.'}</p>
   </div>
   <div className="pa-finale-rankings" aria-label="Final hand rankings" aria-live="polite" aria-relevant="additions">
    {visible.map(p=>{
@@ -182,7 +182,7 @@ export function PresidentAsshole({view,now,offset,onAction,settingsOpen=false,on
  const scoreboard=[...Object.entries(game.presidencies)].sort((a,b)=>b[1]-a[1]||(game.longestStreak[b[0]]??0)-(game.longestStreak[a[0]]??0));
  return host?<section className="pa-stage" aria-label="President / Asshole public presentation">
   <div className="pa-stage-head"><div className="section-kicker">{s.mode==='asshole'?'ASSHOLE':'PRESIDENT'} · HAND {game.handNumber||'—'}</div><div className="pa-clock">{game.stage==='finale'?'':formatLeft(game.stage==='play'?game.turnEndsAt:game.stageEndsAt,now,offset)}</div></div>
-  {game.stage==='finale'?<GameOverFinale game={game} asshole={s.mode==='asshole'} now={now} offset={offset}/>:resultsTakeover?<section className="pa-results-screen" aria-label="Last hand statistics">
+  {game.stage==='finale'?<RankingsFinale game={game} asshole={s.mode==='asshole'} now={now} offset={offset}/>:resultsTakeover?<section className="pa-results-screen" aria-label="Last hand statistics">
    <div className="pa-results-banner">
     <div className="section-kicker">HAND {game.handNumber} COMPLETE</div>
     {game.stage==='ready'?<div className="pa-results-ready"><strong>{readyPlayers} / {game.seats.length} ready</strong><span>Waiting for everyone to ready up for the next hand</span></div>:<div className="pa-results-ready"><strong>Game finished</strong><span>Final hand results</span></div>}
@@ -256,7 +256,7 @@ export function PresidentAsshole({view,now,offset,onAction,settingsOpen=false,on
     <button type="button" className="btn btn-small pa-sound-toggle" onClick={sounds.toggle} aria-label="Toggle sound effects" aria-pressed={sounds.enabled}>{sounds.enabled?'🔊 Effects on':'🔇 Effects off'}</button>
     <label className="pa-audio-volume">Sound effects volume <span>{Math.round(sounds.volume*100)}%</span><input type="range" aria-label="Sound effects volume" min="0" max="1" step="0.05" value={sounds.volume} onChange={e=>sounds.setVolume(Number(e.target.value))}/></label>
    </div></details>
-  {game.stage==='finale'&&<div className="panel pa-message pa-finale-phone"><div className="section-kicker">FINAL RANKINGS</div><h2>GAME OVER!</h2><p>Watch the host screen for the ranking reveal.</p>{now-offset>=paFinaleRevealEndsAt(game.finaleStartedAt??now-offset,game.handRanks.length)&&<p className="pa-finale-phone-countdown">Stats in <strong>{formatLeft(game.stageEndsAt,now,offset)}</strong></p>}</div>}
+  {game.stage==='finale'&&<div className="panel pa-message pa-finale-phone"><div className="section-kicker">FINAL RANKINGS</div><h2>{game.finaleIsGameOver?'GAME OVER!':'ROUND OVER!'}</h2><p>Watch the host screen for the ranking reveal.</p>{now-offset>=paFinaleRevealEndsAt(game.finaleStartedAt??now-offset,game.handRanks.length)&&<p className="pa-finale-phone-countdown">Stats in <strong>{formatLeft(game.stageEndsAt,now,offset)}</strong></p>}</div>}
   {game.stage==='ended'&&<div className="panel pa-message"><h2>Game ended</h2>{game.handRanks.length>0?<div className="pa-ready-results"><HandResults game={game} asshole={s.mode==='asshole'} viewerId={view.me.id}/><PhoneHandOverlays social={socialPhoneOverlay} drink={drinkOverlay} mode={s.mode}/></div>:<p>Final leaderboard is on the host presentation.</p>}</div>}
   {view.status==='setup'&&<div className="panel pa-message"><h2>Host is setting up the room</h2><p>You can ready up once the lobby is open.</p></div>}
   {view.status!=='setup'&&game.stage==='ready'&&<div className="panel pa-message"><div className="section-kicker">{game.handNumber?`HAND ${game.handNumber} COMPLETE`:'WELCOME TO THE TABLE'}</div>{game.handRanks.length>0&&<div className="pa-ready-results"><HandResults game={game} asshole={s.mode==='asshole'} viewerId={view.me.id}/><PhoneHandOverlays social={socialPhoneOverlay} drink={drinkOverlay} mode={s.mode}/></div>}<h2 className="pa-ready-question">{game.handNumber?'Ready for another hand?':'Ready to play?'}</h2><button className={'btn btn-full '+(game.myReady?'':'btn-primary')} onClick={()=>void onAction('president:ready',{ready:!game.myReady})}>{game.myReady?'✓ Ready (tap to cancel)':'Ready up'}</button><p className="helper">All human players must be ready. Bots ready up automatically. At least four combined seats (including one human) are needed.</p>{view.me.primary&&game.seats.filter(p=>p.online).length<4&&game.handNumber>0&&<button className="btn btn-full" onClick={()=>void onAction('president:end')}>End game</button>}</div>}

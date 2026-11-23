@@ -137,6 +137,8 @@ test('rank completion awards exactly one presidency and scores streaks',()=>{
  assert.equal(g.stage,'finale');assert.deepEqual(g.handRanks.map(x=>x.id),['p1','p2','p3','p4']);
  assert.equal(g.finaleStartedAt,2000);
  assert.equal(g.finaleNextStage,'ready');
+ assert.equal(publicPA(r,{id:'host',role:'host'} as Participant)?.finaleIsGameOver,false);
+ assert.equal(publicPA(r,r.participants[0])?.finaleIsGameOver,false);
  assert.equal(g.stageEndsAt,2000+1800+4*800+10000);
  assert.equal(g.presidencies['p1'],1);assert.equal(g.streaks['p1'],1);
  assert.throws(()=>readyPA(r,'p1',true,2001),/cannot ready up/i);
@@ -782,6 +784,8 @@ test('End Game runs a synchronized ascending finale and holds finished rankings 
  assert.equal(g.stageEndsAt,expectedEnd);
  assert.equal(r.status,'playing');
  assert.equal(publicPA(r,{id:'host',role:'host'} as Participant)?.finaleStartedAt,startedAt);
+ assert.equal(publicPA(r,{id:'host',role:'host'} as Participant)?.finaleIsGameOver,true);
+ assert.equal(publicPA(r,r.participants[1])?.finaleIsGameOver,true);
  assert.equal(publicPA(r,r.participants[1])?.stageEndsAt,expectedEnd);
  assert.throws(()=>endPA(r,'p1',startedAt+1),/Finish the current hand first/);
  advancePA(r,expectedEnd-1);
