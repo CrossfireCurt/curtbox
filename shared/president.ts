@@ -24,6 +24,10 @@ export const PA_FINALE_HOLD_MS=10000;
 export function paFinaleRevealEndsAt(startedAt:number,rankCount:number){
  return startedAt+PA_FINALE_INTRO_MS+Math.max(0,rankCount)*PA_FINALE_RANK_MS;
 }
+export function paFinaleVisibleRanks(startedAt:number,serverNow:number,rankCount:number){
+ return Math.min(Math.max(0,rankCount),Math.max(0,
+  Math.floor((serverNow-startedAt-PA_FINALE_INTRO_MS)/PA_FINALE_RANK_MS)+1));
+}
 export type PADecreeKey = 'unequal_burden'|'rank_seating'|'reverse_deal'|'reverse_play'|'double_trouble'|'card_exchange'|'democracy'|'term_limits'|'max_active'|'drink_twos'|'require_ack';
 export type PADecreeAction = {kind:'enact'|'repeal';key:PADecreeKey;value?:number};
 export interface PASettings {
