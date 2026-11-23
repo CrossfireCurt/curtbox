@@ -4,7 +4,7 @@
 
 | Order | Issue | Feature |
 | --- | --- | --- |
-| 1 | [#1](https://github.com/CrossfireCurt/curtbox/issues/1) | Android TV / Google TV / compatible Fire TV presenter APK, configurable Curtbox server |
+| 1 | [#1](https://github.com/CrossfireCurt/curtbox/issues/1) | Android TV / Google TV / compatible Fire TV presenter APK, configurable Curtbox server — **first APK implementation in review; physical TV QA pending** |
 | 2 | [#2](https://github.com/CrossfireCurt/curtbox/issues/2) | Disconnected-player icon next to names on public presenter screens in both games |
 | 3 | [#3](https://github.com/CrossfireCurt/curtbox/issues/3) | **Ordinary equal-rank response skips the next player**, with Skipped animation on presenter + skipped player's phone; **successful Social clears instead** |
 | 4 | [#4](https://github.com/CrossfireCurt/curtbox/issues/4) | Make rank/value of current overlapping pile legible |
@@ -27,3 +27,7 @@ The source currently clears the pile on ordinary equal-rank responses. The user 
 ## Workflow
 
 Each issue should have one focused PR with engine/client tests and accompanying spec updates. CI must pass before merge. High-risk rule changes and TV remote UX need additional runtime testing. Roadmap order can change by explicit user instruction.
+
+## Android TV delivery note
+
+The Android TV source and GitHub APK build now live under `android-tv/` and `.github/workflows/android-tv.yml`; `docs/ANDROID_TV.md` documents sideloading and validation. **Do not close issue #1 until a physical Android TV/Google TV and compatible Fire TV or emulators have been validated**, including remote controls, host create/settings, URL configuration and reconnect. This is an initial sideloadable debug build rather than a fully signed store-distributed release.
