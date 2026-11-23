@@ -545,3 +545,38 @@ test('server-owned result counters track Social, special clears, cards, passes a
  assert.equal(g.handStats?.p2,undefined,'new hand counters reset');
  assert.equal(g.playerStats?.p2?.socials,1,'all-time counters survive');
 });
+
+test('sound event snapshots expose card/clear only to presenter and targeted drink only to player',()=>{
+ const r=fixture(),g=r.pa!;r.paSettings!.mode='asshole';for(let i=1;i<=4;i++)readyPA(r,`p${i}`,true,1000);
+ g.turn='p1';g.lastClear={by:'p1',cards:[],reason:'fixture',at:0,serial:0};
+ g.hands.p1=['7C','2S','KC'];g.hands.p2=['7D','7H','7S','QC'];r.paSettings!.social=true;
+ playPA(r,'p1',['7C'],2000);
+ let board=publicPA(r,{id:'host',role:'host'} as Participant)!;
+ let phone=publicPA(r,r.participants[1])!;
+ assert.equal(board.lastPlayed?.by,'p1');
+ assert.equal(board.lastPlayed?.at,2000);
+ assert.equal(phone.lastPlayed,undefined);
+ playPA(r,'p2',['7D','7H','7S'],2001,true);
+ board=publicPA(r,{id:'host',role:'host'} as Participant)!;
+ assert.equal(board.lastClear?.reason,'Social');
+ g.decrees.push({key:'drink_twos'});
+ g.turn='p1';playPA(r,'p1',['2S'],2002);
+ board=publicPA(r,{id:'host',role:'host'} as Participant)!;
+ phone=publicPA(r,r.participants[1])!;
+ assert.equal(board.myDrinkEvent,undefined);
+ assert.equal(phone.myDrinkEvent?.at,2002);
+ assert.equal(phone.myPendingDrinks?.length,1);
+ assert.equal(publicPA(r,r.participants[0])?.myDrinkEvent,undefined);
+ assert.equal(publicPA(r,r.participants[2])?.myDrinkEvent?.at,2002);
+ const serial=phone.myDrinkEvent?.serial;
+ const repeated=publicPA(r,r.participants[1]);
+ assert.equal(repeated?.myDrinkEvent?.serial,serial);
+});
+test('manual Pass drink notification carries a unique event ID to that phone',()=>{
+ const r=fixture(),g=r.pa!;r.paSettings!.mode='asshole';for(let i=1;i<=4;i++)readyPA(r,`p${i}`,true,1000);
+ g.turn='p2';g.pile=['5C'];g.pileOwner='p1';g.pileRank=2;
+ g.lastPlay={player:'p1',rank:2,count:1,cards:['5C'],serial:1};
+ passPA(r,'p2',2000,true);
+ assert.equal(publicPA(r,r.participants[1])?.myDrinkEvent?.at,2000);
+ assert.equal(publicPA(r,r.participants[0])?.myDrinkEvent,undefined);
+});

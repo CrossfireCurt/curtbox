@@ -26,6 +26,8 @@ export interface PAState {
   pilePlays?:PAPilePlay[];pileHistory?:PAClearedPile[];
   lastClear?:{by:string;cards:PACard[];at:number;reason:string;serial:number};
   lastSkip?:{by:string;skipped:string;at:number;serial:number};
+  lastPlayed?:{by:string;at:number;serial:number};
+  drinkEvents?:Record<string,{serial:number;at:number}>;
   exchange:PAExchange[]; stageEndsAt?:number; decrees:PADecree[];
   pendingPresident?:string; decreeActionsRemaining:number; vote?:PAVote;
   presidencies:Record<string,number>; streaks:Record<string,number>; longestStreak:Record<string,number>;
@@ -37,7 +39,10 @@ export interface PAPublic {
   stage:PAStage;handNumber:number;seats:{id:string;name:string;cards:number;position?:number;online:boolean;ready:boolean;bot:boolean;nextHand?:boolean}[];
   currentPlayerId?:string;turnEndsAt?:number;stageEndsAt?:number;pile?:PACard[];pileOwner?:string;
   pilePlays?:PAPilePlay[];pileHistory?:PAClearedPile[];
-  lastClear?:PAState['lastClear'];lastSkip?:PAState['lastSkip'];event?:string;activeDecrees:PADecree[];
+  lastClear?:PAState['lastClear'];lastSkip?:PAState['lastSkip'];
+  /** Presenter card sound event and private affected-player drink cue. */
+  lastPlayed?:PAState['lastPlayed'];myDrinkEvent?:{serial:number;at:number};
+  event?:string;activeDecrees:PADecree[];
   handRanks:PARank[];previousRanks:PARank[];myHand?:PACard[];myReady?:boolean;inHand?:boolean;myFinished?:boolean;
   myExchange?:{count:number;original:PACard[];selected?:PACard[]};
   myPendingDrinks?:string[];canSocial?:boolean;socialRequirement?:{rank:string;count:number};canPlay?:boolean;isPresident?:boolean;

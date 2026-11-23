@@ -70,3 +70,6 @@ Normal bot plays now wait 1.8–3.6 seconds; bot Social waits 2.4–4.8 seconds 
 
 ## Issue #8 — Named ready-screen ranks and stats
 The ready-for-next-hand screen uses named ranks and server-owned last-hand + lifetime stats, on both player phones and presenter. Last-hand counters reset at the next deal while cumulative totals persist; departed finishers remain listed and unranked late joiners are distinct. See PR for #8. No private hands are exposed.
+
+## Delivered: #11 sound cues and #12 countdown on active presenter seat
+President / Asshole now has locally synthesized card placement, Social applause, pile-clear whoosh, optional skip cue on presenter; player-only turn notification, final-five-seconds ticking, skipped and drinking glass-clink cues. Server event IDs/timestamps and browser dedupe avoid replay on repeated snapshots. Local sound toggle/unlock supports browser autoplay limits. The active player's board seat shows the authoritative `turnEndsAt` countdown. Manual audio/browser/TV QA still needed.

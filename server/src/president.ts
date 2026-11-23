@@ -101,7 +101,7 @@ function beginHand(r:RoomState,now:number){
   for(const id of [...ranked(g,ids)].reverse().slice(0,extra))deficits[id]++;
   while(cards.length){for(const id of dealOrder)if(deficits[id]>0){hands[id].push(cards.pop()!);deficits[id]--;}}
  }else{let n=0;while(cards.length)hands[dealOrder[n++%dealOrder.length]].push(cards.pop()!);}
- g.handNumber=newHand;g.hands=hands;g.active=ids;g.ready=[];g.finished=[];g.handRanks=[];g.passed=[];g.pile=[];g.pileOwner=undefined;g.pileRank=undefined;g.lastPlay=undefined;g.lastClear=undefined;g.lastSkip=undefined;g.pilePlays=[];g.pileHistory=[];g.handStats={};g.serial++;
+ g.handNumber=newHand;g.hands=hands;g.active=ids;g.ready=[];g.finished=[];g.handRanks=[];g.passed=[];g.pile=[];g.pileOwner=undefined;g.pileRank=undefined;g.lastPlay=undefined;g.lastClear=undefined;g.lastSkip=undefined;g.lastPlayed=undefined;g.pilePlays=[];g.pileHistory=[];g.handStats={};g.serial++;
  const leader=newHand===1?ids.find(id=>hands[id].includes(s.openingCard)):low;
  chooseLead(g,leader);g.turnEndsAt=now+s.turnSeconds*1000;g.stage='play';g.event=`Hand ${newHand} dealt`;
  g.exchange=[];
@@ -146,6 +146,10 @@ function addStat(g:PAState,id:string,key:keyof PAPlayerStats,value=1){
   const row=records[id]??=emptyStats();
   row[key]+=value;
  }
+}
+function notifyDrink(g:PAState,id:string,message:string,now:number){
+ (g.drinking[id]??=[]).push(message);
+ (g.drinkEvents??={})[id]={serial:++g.serial,at:now};
 }
 function archivePile(g:PAState,by:string,reason:string,now:number){
  if(!g.pile.length)return;
@@ -199,11 +203,11 @@ export function playPA(r:RoomState,id:string,cards:PACard[],now=Date.now(),socia
  const special=rank===12||cards.length===4||(has(g,'double_trouble')&&rank===0&&cards.length===2);
  if(!social&&g.pile.length&&!special){if(cards.length!==g.lastPlay?.count)throw Error('Match the number of cards in the latest play.');if(rank<(g.pileRank??-1))throw Error('You must play a higher rank.');}
  const equal=!social&&g.pile.length>0&&rank===g.pileRank;
- g.hands[id]=g.hands[id].filter(c=>!cards.includes(c));g.pile.push(...cards);g.pileOwner=id;g.pileRank=rank;g.lastPlay={player:id,rank,count:cards.length,cards:[...cards],serial:++g.serial};(g.pilePlays??=[]).push({by:id,cards:[...cards],serial:g.lastPlay.serial});g.passed=[];
+ g.hands[id]=g.hands[id].filter(c=>!cards.includes(c));g.pile.push(...cards);g.pileOwner=id;g.pileRank=rank;g.lastPlay={player:id,rank,count:cards.length,cards:[...cards],serial:++g.serial};g.lastPlayed={by:id,at:now,serial:g.lastPlay.serial};(g.pilePlays??=[]).push({by:id,cards:[...cards],serial:g.lastPlay.serial});g.passed=[];
  addStat(g,id,'cardsPlayed',cards.length);
  if(social)addStat(g,id,'socials');
  if(rank===12)addStat(g,id,'twosPlayed',cards.length);
- if(rank===12&&has(g,'drink_twos'))for(const target of g.active)if(target!==id&&!isBot(r,target)&&!g.finished.includes(target))(g.drinking[target]??=[]).push(`${g.names[id]} played a 2 — drink`);
+ if(rank===12&&has(g,'drink_twos'))for(const target of g.active)if(target!==id&&!isBot(r,target)&&!g.finished.includes(target))notifyDrink(g,target,`${g.names[id]} played a 2 — drink`,now);
  const ended=finishCards(r,id,now);if(ended)return;
  if(social||special){clear(g,id,social?'Social':'Special clear',now);g.turnEndsAt=now+r.paSettings!.turnSeconds*1000;}
  else if(equal){
@@ -218,7 +222,7 @@ export function passPA(r:RoomState,id:string,now=Date.now(),manual=true){
  const g=r.pa!;if(!g||g.stage!=='play'||g.turn!==id)throw Error('Not your turn.');
  if(manual)ensureUnblocked(g,id);
  if(!g.pile.length)throw Error('You must lead when the pile is empty.');
- if(manual&&!isBot(r,id)&&r.paSettings!.mode==='asshole')(g.drinking[id]??=[]).push('Pass = Drink');
+ if(manual&&!isBot(r,id)&&r.paSettings!.mode==='asshole')notifyDrink(g,id,'Pass = Drink',now);
  addStat(g,id,'passes');
  g.passed=uniq([...g.passed,id]);
  const others=g.active.filter(x=>!g.finished.includes(x)&&x!==g.pileOwner);
@@ -448,7 +452,8 @@ export function publicPA(r:RoomState,me:Participant):PAPublic|undefined{
   pile:host?[...g.pile]:undefined,pileOwner:host?g.pileOwner:undefined,
   pilePlays:host?pilePlays(g).map(p=>({...p,cards:[...p.cards]})):undefined,
   pileHistory:host?(g.pileHistory??[]).map(h=>({...h,cards:[...h.cards],plays:h.plays.map(p=>({...p,cards:[...p.cards]}))})):undefined,
-  lastClear:host?g.lastClear:undefined,lastSkip:g.lastSkip,event:g.event,
+  lastClear:host?g.lastClear:undefined,lastSkip:g.lastSkip,
+   lastPlayed:host?g.lastPlayed:undefined,myDrinkEvent:!host?g.drinkEvents?.[myId]:undefined,event:g.event,
   activeDecrees:g.decrees,handRanks:g.handRanks,previousRanks:g.previousRanks,
   myHand:!host?[...(g.hands[myId]??[])].sort((a,b)=>order(a)-order(b)):undefined,myReady:g.ready.includes(myId),inHand:g.active.includes(myId),myFinished:g.finished.includes(myId),
   myExchange:!host&&exchange?{count:exchange.count,original:exchange.original,selected:exchange.selected}:undefined,
