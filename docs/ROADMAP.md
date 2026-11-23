@@ -53,3 +53,7 @@ These are **queued, not implemented**. Preserve the existing order (#2–#8) bef
 - The live pile display has card faces, but no explicit combination-size label ([#13](https://github.com/CrossfireCurt/curtbox/issues/13)). Coordinate pile visibility and history with #4–#5.
 
 The Android TV app was merged via [PR #10](https://github.com/CrossfireCurt/curtbox/pull/10) and its APK build succeeded; [#1](https://github.com/CrossfireCurt/curtbox/issues/1) remains open for actual device validation. The next **feature implementation** remains the cross-game disconnected-player warning ([#2](https://github.com/CrossfireCurt/curtbox/issues/2)).
+
+
+## Implementation note — issue #2
+Disconnected-player presenter status is implemented via shared `ConnectionName` in both game presentations and verified in static/client checks; full browser reconnect acceptance remains recommended. See [issue #2](https://github.com/CrossfireCurt/curtbox/issues/2).

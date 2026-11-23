@@ -223,3 +223,7 @@ The repository is hosted at `https://github.com/CrossfireCurt/curtbox`. GitHub A
 ## Incoming presenter/phone UX queue — Nov 23, 2026
 
 Issue details and acceptance criteria are linked in `docs/ROADMAP.md`: #11 separate card/turn-start/ticking/skip audio, #12 turn countdown in the active public seat, #13 pile combination label, #14 preserve preselected cards when turn ownership changes. Existing #6 covers only allowing same-rank cards in Play/Social selections; exchange returns may mix ranks. These tasks are pending and must not be conflated with past functionality. Source audit: `client/src/PresidentAsshole.tsx` resets selected cards by watching `game.currentPlayerId` and has a header turn clock but no in-seat one; `client/src/audio.ts` handles other game's Host-centric cues. Keep effects scoped to the correct participant and dedupe across `room:view` broadcasts/reconnects.
+
+
+## Connection status presentation change (issue #2)
+The public presenter surfaces now render a shared `ConnectionName` component based on `RoomView.participants[].online` (Survey Show) and `PAPublic.seats[].online` (President / Asshole). Virtual bots explicitly never receive a warning. This is UI-only; server disconnect/grace/reconnect state is unchanged. Regression tests: `client/tests/connection-indicators.test.mjs`. Test physical TV presentation and live reconnect flows before production.
