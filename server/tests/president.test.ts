@@ -155,6 +155,9 @@ test('ordinary equal-rank response skips one seat, keeps the pile, and publishes
  assert.equal(g.pileOwner,q);assert.equal(g.lastClear?.reason,'setup');
  assert.equal(g.lastPlay?.player,q);assert.equal(g.lastPlay?.count,1);
  assert.deepEqual({by:g.lastSkip?.by,skipped:g.lastSkip?.skipped,at:g.lastSkip?.at},{by:q,skipped,at:2002});
+ assert.equal(g.handStats?.[q]?.skips,1,'count a skip issued by the equal-rank player');
+ assert.equal(g.playerStats?.[q]?.skips,1,'persist an issued skip cumulatively');
+ assert.equal(g.handStats?.[skipped]?.skips??0,0,'skipped victim does not earn a skip');
  assert.equal(g.turnEndsAt,2002+r.paSettings!.turnSeconds*1000);
  assert.equal(publicPA(r,r.participants.find(x=>x.id===skipped)!)?.lastSkip?.skipped,skipped);
  assert.equal(publicPA(r,{id:'host',role:'host'} as Participant)?.lastSkip?.by,q);
@@ -664,4 +667,20 @@ test('server reports finishing positions and legal play information without send
  assert.equal(p2.playRule?.empty,true);
  g.finished.push('p2');g.hands.p2=[];
  assert.equal(publicPA(r,{id:'host',role:'host'} as Participant)!.seats.find(p=>p.id==='p2')?.finishedPosition,2);
+});
+
+test('issued skip stats migrate legacy rows and do not count the skipped victim',()=>{
+ const r=fixture(),g=r.pa!;
+ for(let i=1;i<=4;i++)readyPA(r,`p${i}`,true,1000);
+ const first=g.turn!,q=g.seats[(g.seats.indexOf(first)+1)%4],victim=g.seats[(g.seats.indexOf(first)+2)%4];
+ g.hands[first]=['6C','KC'];g.hands[q]=['6H','KH'];
+ g.lastClear={by:first,cards:[],reason:'setup',at:0,serial:0};
+ g.playerStats={[q]:{cardsPlayed:4,pilesCleared:0,socials:0,twosPlayed:0,passes:0} as PAPlayerStats};
+ g.turn=first;
+ playPA(r,first,['6C'],2000);
+ playPA(r,q,['6H'],2001);
+ assert.equal(g.handStats?.[q]?.skips,1);
+ assert.equal(g.playerStats?.[q]?.skips,1,'old missing field becomes numeric one, not NaN');
+ assert.equal(g.playerStats?.[q]?.cardsPlayed,5);
+ assert.equal(g.handStats?.[victim]?.skips??0,0);
 });

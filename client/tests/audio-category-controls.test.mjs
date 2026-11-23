@@ -61,3 +61,17 @@ test('President music and SFX sliders are independently wired to live output vol
  assert.match(presidentAudio,/if\(output\.current\)output\.current\.gain\.value=normalized/);
  assert.match(pa,/className="pa-phone-audio"/);
 });
+
+test('President missing optional soundtrack falls back to original synthesized music',()=>{
+ const synth=read('client/src/presidentAmbientMusic.ts');
+ assert.match(presidentAudio,/import \{startPresidentAmbient,type AmbientMusic\}/);
+ assert.match(presidentAudio,/music\.addEventListener\('error',onError\)/);
+ assert.match(presidentAudio,/synth\.current=startPresidentAmbient\(track,volumeRef\.current\)/);
+ assert.match(presidentAudio,/synth\.current\?\.setVolume\(normalized\)/);
+ assert.match(presidentAudio,/synth\.current\?\.stop\(\)/);
+ assert.match(synth,/new AudioContext\(\)/);
+ assert.match(synth,/setInterval\(tick,310\)/);
+ assert.match(synth,/master\.gain\.value=.*\.17/);
+ assert.match(synth,/ctx\.resume\(\)/);
+ assert.match(synth,/clearInterval\(interval\)/);
+});

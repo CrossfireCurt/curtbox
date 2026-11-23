@@ -52,7 +52,7 @@ test('audio is user-controllable and generated locally rather than fetched',()=>
  assert.match(audio,/new AudioContext\(\)/);
  assert.match(audio,/localStorage\.setItem/);
  assert.match(ui,/sounds\.toggle/);
- const synthesized=audio.split('/**\n * Presenter background music')[0];
+ const synthesized=audio.split('export function usePresidentMusic')[0];
  assert.doesNotMatch(synthesized,/\.ogg|\.mp3|https:\/\//);
  assert.match(audio,/\/audio\/music\//);
 });

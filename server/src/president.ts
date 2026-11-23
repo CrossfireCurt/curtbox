@@ -138,13 +138,14 @@ function pilePlays(g:PAState):PAPilePlay[]{
  const earlier=g.pile.slice(0,-g.lastPlay.count);
  return [...(earlier.length?[{by:'',cards:earlier,serial:-1}]:[]),{by:g.lastPlay.player,cards:[...g.lastPlay.cards],serial:g.lastPlay.serial}];
 }
-const emptyStats=():PAPlayerStats=>({cardsPlayed:0,pilesCleared:0,socials:0,twosPlayed:0,passes:0});
+const emptyStats=():PAPlayerStats=>({cardsPlayed:0,pilesCleared:0,socials:0,twosPlayed:0,passes:0,skips:0});
 function addStat(g:PAState,id:string,key:keyof PAPlayerStats,value=1){
  if(!id)return;
  const all=(g.playerStats??={}),hand=(g.handStats??={});
  for(const records of [all,hand]){
   const row=records[id]??=emptyStats();
-  row[key]+=value;
+  // Persisted rooms may predate a newly added counter (e.g. issued skips).
+  row[key]=(row[key]??0)+value;
  }
 }
 function notifyDrink(g:PAState,id:string,message:string,now:number){
@@ -243,7 +244,7 @@ export function playPA(r:RoomState,id:string,cards:PACard[],now=Date.now(),socia
   if(endHand(r,now))return;
   if(equal){
    const skipped=nextIn(g,id,g.finished,activeDirection(g));
-   if(skipped){g.lastSkip={by:id,skipped,at:now,serial:++g.serial};nextTurn(r,skipped,now);}
+   if(skipped){g.lastSkip={by:id,skipped,at:now,serial:++g.serial};addStat(g,id,'skips');nextTurn(r,skipped,now);}
    else nextTurn(r,id,now);
   }else nextTurn(r,id,now);
  }
