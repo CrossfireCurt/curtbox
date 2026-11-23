@@ -1,12 +1,13 @@
 import {useCallback,useEffect,useRef,useState} from 'react';
 import type {RoomView} from '../../shared/types';
+import {clampPresidentVolume,readPresidentVolume} from './presidentVolume';
 import {newPresidentSoundCues,presidentSoundCues,type PACueKind} from './presidentSoundEvents';
 
 const prefKey='curtbox.pa.effects';
 function preference(){
  try{return window.localStorage.getItem(prefKey)!=='off';}catch{return true;}
 }
-function playSound(ctx:AudioContext,kind:PACueKind){
+function playSound(ctx:AudioContext,kind:PACueKind,output:AudioNode){
  if(ctx.state!=='running')return;
  const t=ctx.currentTime+.012;
  const voice=(hz:number,length:number,amp:number,start=0,wave:OscillatorType='triangle',endHz?:number)=>{
@@ -16,7 +17,7 @@ function playSound(ctx:AudioContext,kind:PACueKind){
   gain.gain.setValueAtTime(.0001,at);
   gain.gain.exponentialRampToValueAtTime(Math.max(.0002,amp),at+.008);
   gain.gain.exponentialRampToValueAtTime(.0001,at+length);
-  osc.connect(gain);gain.connect(ctx.destination);
+  osc.connect(gain);gain.connect(output);
   osc.start(at);osc.stop(at+length+.015);
  };
  const noise=(length:number,amp:number,start=0,low=450,high=4200)=>{
@@ -28,7 +29,7 @@ function playSound(ctx:AudioContext,kind:PACueKind){
   filter.Q.value=.6;gain.gain.setValueAtTime(.0001,at);
   gain.gain.linearRampToValueAtTime(amp,at+Math.min(.05,length/3));
   gain.gain.linearRampToValueAtTime(.0001,at+length);
-  source.connect(filter);filter.connect(gain);gain.connect(ctx.destination);
+  source.connect(filter);filter.connect(gain);gain.connect(output);
   source.start(at);source.stop(at+length+.005);
  };
  switch(kind){
@@ -49,11 +50,22 @@ function playSound(ctx:AudioContext,kind:PACueKind){
 /** Client audio never controls the server game clock or gameplay. */
 export function usePresidentSounds(view:RoomView,now:number,offset:number){
  const [enabled,setEnabled]=useState(preference);
+ const [volume,setVolumeState]=useState(()=>{
+  try{return readPresidentVolume(window.localStorage.getItem('curtbox.pa.effectsVolume'),.65);}catch{return .65;}
+ });
  const context=useRef<AudioContext|null>(null),seen=useRef(new Set<string>());
+ const output=useRef<GainNode|null>(null),volumeRef=useRef(volume);
+ volumeRef.current=volume;
  const room=useRef(view.code);
  const unlock=useCallback(()=>{
   try{
-   if(!context.current||context.current.state==='closed')context.current=new AudioContext();
+   if(!context.current||context.current.state==='closed'){
+    context.current=new AudioContext();
+    const gain=context.current.createGain();
+    gain.gain.value=volumeRef.current;
+    gain.connect(context.current.destination);
+    output.current=gain;
+   }
    if(context.current.state!=='running')void context.current.resume().catch(()=>{});
   }catch{/* Sound is optional if browser/TV does not support Web Audio. */}
  },[]);
@@ -64,7 +76,14 @@ export function usePresidentSounds(view:RoomView,now:number,offset:number){
   window.addEventListener('keydown',onGesture,{capture:true});
   return()=>{window.removeEventListener('pointerdown',onGesture,{capture:true});window.removeEventListener('keydown',onGesture,{capture:true});};
  },[enabled,unlock]);
+ useEffect(()=>{if(!enabled&&context.current?.state==='running')void context.current.suspend().catch(()=>{});},[enabled]);
  useEffect(()=>()=>{if(context.current){void context.current.close().catch(()=>{});context.current=null;}},[]);
+ const setVolume=useCallback((next:number)=>{
+  const normalized=clampPresidentVolume(next);
+  setVolumeState(normalized);
+  if(output.current)output.current.gain.value=normalized;
+  try{window.localStorage.setItem('curtbox.pa.effectsVolume',String(normalized));}catch{/* Storage optional. */}
+ },[]);
  const toggle=useCallback(()=>{
   setEnabled(previous=>{
    const next=!previous;
@@ -81,8 +100,59 @@ export function usePresidentSounds(view:RoomView,now:number,offset:number){
   const fresh=newPresidentSoundCues(cues,seen.current);
   if(!enabled)return;
   for(const cue of fresh){
-   try{if(context.current)playSound(context.current,cue.kind);}catch{/* Sound failure never interrupts gameplay. */}
+   try{if(context.current&&output.current)playSound(context.current,cue.kind,output.current);}catch{/* Sound failure never interrupts gameplay. */}
   }
  },[view,now,offset,enabled]);
- return {enabled,toggle,unlock};
+ return {enabled,volume,setVolume,toggle,unlock};
+}
+
+
+/**
+ * Presenter background music is independent of gameplay effects.
+ * Uses the already self-hosted, licensed Survey Show soundtrack files.
+ * Never starts on a player phone.
+ */
+export function usePresidentMusic(view:RoomView){
+ const [enabled,setEnabled]=useState(()=>{
+  try{return window.localStorage.getItem('curtbox.pa.music')==='on';}catch{return false;}
+ });
+ const [volume,setVolumeState]=useState(()=>{
+  try{return readPresidentVolume(window.localStorage.getItem('curtbox.pa.musicVolume'),.20);}catch{return .20;}
+ });
+ const volumeRef=useRef(volume);
+ volumeRef.current=volume;
+ const active=view.me.role==='host'&&!view.me.hostWaiting;
+ const stage=view.pa?.stage;
+ const track=stage==='play'?'guess':stage==='exchange'||stage==='decree'||stage==='vote'?'predict':'lobby';
+ const audio=useRef<HTMLAudioElement|null>(null);
+ const setVolume=useCallback((next:number)=>{
+  const normalized=clampPresidentVolume(next);
+  setVolumeState(normalized);
+  if(audio.current)audio.current.volume=normalized;
+  try{window.localStorage.setItem('curtbox.pa.musicVolume',String(normalized));}catch{/* Storage optional. */}
+ },[]);
+ const toggle=useCallback(()=>{
+  setEnabled(old=>{
+   const next=!old;
+   try{window.localStorage.setItem('curtbox.pa.music',next?'on':'off');}catch{/* Storage optional. */}
+   return next;
+  });
+ },[]);
+ useEffect(()=>{
+  if(!active||!enabled)return;
+  const music=new Audio(`/audio/music/${track}.ogg`);
+  music.loop=true;music.preload='auto';music.volume=volumeRef.current;
+  audio.current=music;
+  const unlock=()=>{if(audio.current===music)void music.play().catch(()=>{});};
+  unlock();
+  window.addEventListener('pointerdown',unlock,{capture:true});
+  window.addEventListener('keydown',unlock,{capture:true});
+  return()=>{
+   window.removeEventListener('pointerdown',unlock,{capture:true});
+   window.removeEventListener('keydown',unlock,{capture:true});
+   music.pause();music.removeAttribute('src');music.load();
+   if(audio.current===music)audio.current=null;
+  };
+ },[active,enabled,track]);
+ return {enabled,volume,setVolume,toggle};
 }

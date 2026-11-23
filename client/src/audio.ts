@@ -2,7 +2,7 @@ import {useCallback,useEffect,useRef,useState} from 'react';
 import type {PublicGame,Status} from '../../shared/types';
 
 type SoundEvent={id:string;emoji:string;label:string;by:string;at:number;sound:string};
-interface Params {enabled:boolean;roomStatus?:Status;game?:PublicGame;musicVolume:number;effectsVolume:number;eventSound?:SoundEvent}
+interface Params {musicEnabled:boolean;effectsEnabled:boolean;roomStatus?:Status;game?:PublicGame;musicVolume:number;effectsVolume:number;eventSound?:SoundEvent}
 type MusicPlayback={track:string;audio:HTMLAudioElement};
 type ReactionJob={sound:string;receivedAt:number};
 
@@ -26,7 +26,7 @@ const phaseCue=(status?:Status,phase?:string)=>{
 const clamp=(n:number)=>Math.max(0,Math.min(1,n));
 const file=(category:'music'|'sfx',name:string)=>`/audio/${category}/${name}.ogg`;
 
-export function useGameAudio({enabled,roomStatus,game,musicVolume,effectsVolume,eventSound}:Params){
+export function useGameAudio({musicEnabled,effectsEnabled,roomStatus,game,musicVolume,effectsVolume,eventSound}:Params){
  const [unlocked,setUnlocked]=useState(false);
  const ctx=useRef<AudioContext|null>(null);
  const music=useRef<MusicPlayback|null>(null);
@@ -38,8 +38,8 @@ export function useGameAudio({enabled,roomStatus,game,musicVolume,effectsVolume,
  const reactionBusy=useRef(false);
  const lastReaction=useRef('');
  const lastCue=useRef('');
- const values=useRef({enabled,effectsVolume,musicVolume});
- values.current={enabled,effectsVolume,musicVolume};
+ const values=useRef({effectsEnabled,effectsVolume,musicVolume});
+ values.current={effectsEnabled,effectsVolume,musicVolume};
  const phase=game?.phase;
  const startedAt=game?.phaseStartedAt;
  const track=musicTrack(roomStatus,phase);
@@ -62,13 +62,13 @@ export function useGameAudio({enabled,roomStatus,game,musicVolume,effectsVolume,
   }catch{/* Autoplay/browser permission is optional; game timing is unaffected. */}
  },[]);
  useEffect(()=>{
-  if(!enabled||unlocked)return;
+  if((!musicEnabled&&!effectsEnabled)||unlocked)return;
   // Unlock on the host's very first interaction, not only a settings button.
   const handler=()=>unlock();
   window.addEventListener('pointerdown',handler,{capture:true});
   window.addEventListener('keydown',handler,{capture:true});
   return()=>{window.removeEventListener('pointerdown',handler,{capture:true});window.removeEventListener('keydown',handler,{capture:true});};
- },[enabled,unlocked,unlock]);
+ },[musicEnabled,effectsEnabled,unlocked,unlock]);
  const stopMusic=useCallback(()=>{
   if(fadeTimer.current)clearInterval(fadeTimer.current);
   fadeTimer.current=null;
@@ -79,7 +79,7 @@ export function useGameAudio({enabled,roomStatus,game,musicVolume,effectsVolume,
  // The server's phase start timestamp determines the position after reconnects.
  // Actual tracks are self-hosted under /audio/music (install with npm run audio:fetch).
  useEffect(()=>{
-  if(!enabled||!unlocked){stopMusic();return;}
+  if(!musicEnabled||!unlocked){stopMusic();return;}
   if(music.current?.track===track)return;
   if(fadeTimer.current)clearInterval(fadeTimer.current);
   fading.current?.pause();fading.current=music.current?.audio??null;
@@ -99,21 +99,21 @@ export function useGameAudio({enabled,roomStatus,game,musicVolume,effectsVolume,
   fadeTimer.current=setInterval(()=>{
    const t=clamp((Date.now()-start)/700);
    const volume=clamp(values.current.musicVolume);
-   next.volume=values.current.enabled?clamp(t*volume):0;
+   next.volume=clamp(t*volume);
    if(previous)previous.volume=clamp((1-t)*volume);
    if(t>=1){if(fadeTimer.current)clearInterval(fadeTimer.current);fadeTimer.current=null;previous?.pause();fading.current=null;}
   },45);
   return()=>{if(fadeTimer.current)clearInterval(fadeTimer.current);fadeTimer.current=null;};
- },[enabled,unlocked,track,stopMusic]);
+ },[musicEnabled,unlocked,track,stopMusic]);
  useEffect(()=>{
-  if(music.current?.audio&&!fadeTimer.current)music.current.audio.volume=enabled?clamp(musicVolume):0;
- },[enabled,musicVolume]);
+  if(music.current?.audio&&!fadeTimer.current)music.current.audio.volume=musicEnabled?clamp(musicVolume):0;
+ },[musicEnabled,musicVolume]);
  useEffect(()=>()=>{stopMusic();currentEffect.current?.pause();reactionPlaying.current?.pause();void ctx.current?.close();},[stopMusic]);
 
  // Keep a very quiet synthesized backup if the CC0 soundtrack hasn't been
  // downloaded yet. This fallback is never used when a real music file plays.
  useEffect(()=>{
-  if(!enabled||!unlocked)return;
+  if(!musicEnabled||!unlocked)return;
   const notes:Record<string,number[]>={lobby:[262,330,392,330],guess:[294,349,392,349],predict:[220,262,330,262],finale:[330,392,440,523]};
   let last=-1;
   const timer=setInterval(()=>{
@@ -124,25 +124,26 @@ export function useGameAudio({enabled,roomStatus,game,musicVolume,effectsVolume,
    tone((notes[track]??notes.lobby)[beat%4],.16,clamp(values.current.musicVolume)*.055);
   },180);
   return()=>clearInterval(timer);
- },[enabled,unlocked,track,tone]);
+ },[musicEnabled,unlocked,track,tone]);
 
  // A few phase stingers: the sourced Kenney Music Jingles pack supplies the audio.
  useEffect(()=>{
   const cue=phaseCue(roomStatus,phase);
   const key=`${roomStatus}:${phase}:${startedAt??''}`;
-  if(!cue||!enabled||!unlocked||lastCue.current===key)return;
-  lastCue.current=key;
+  if(!cue||lastCue.current===key)return;
+  lastCue.current=key; // Muted or locked cues should never replay on re-enable.
+  if(!effectsEnabled||!unlocked)return;
   const sound=new Audio(file('sfx',`cue-${cue}`));
   sound.volume=clamp(effectsVolume*.75);
   currentEffect.current?.pause();currentEffect.current=sound;
   sound.addEventListener('error',()=>tone(660,.22,effectsVolume*.13),{once:true});
   void sound.play().catch(()=>tone(660,.22,effectsVolume*.13));
- },[roomStatus,phase,startedAt,enabled,unlocked,effectsVolume,tone]);
+ },[roomStatus,phase,startedAt,effectsEnabled,unlocked,effectsVolume,tone]);
 
  // Reactions remain sequential per host. At most 1 playing + 3 waiting; a
  // queued sound expires if it has not begun within 2 s. Only AUDIO is dropped.
  const playQueued=useCallback(function playNext(){
-  if(reactionBusy.current||!values.current.enabled)return;
+  if(reactionBusy.current||!values.current.effectsEnabled)return;
   let next:ReactionJob|undefined;
   while((next=reactionQueue.current.shift())){if(Date.now()-next.receivedAt<=2000)break;}
   if(!next||Date.now()-next.receivedAt>2000)return;
@@ -161,16 +162,17 @@ export function useGameAudio({enabled,roomStatus,game,musicVolume,effectsVolume,
   void sound.play().catch(()=>{tone(420,.12,values.current.effectsVolume*.10);finish();});
  },[tone]);
  useEffect(()=>{
-  if(!enabled){reactionQueue.current=[];reactionPlaying.current?.pause();reactionPlaying.current=null;reactionBusy.current=false;}
- },[enabled]);
+  if(!effectsEnabled){reactionQueue.current=[];reactionPlaying.current?.pause();reactionPlaying.current=null;reactionBusy.current=false;currentEffect.current?.pause();currentEffect.current=null;}
+ },[effectsEnabled]);
  useEffect(()=>{
-  if(!eventSound||!enabled||!unlocked)return;
+  if(!eventSound)return;
   const key=`${eventSound.at}:${eventSound.id}:${eventSound.by}`;
   if(lastReaction.current===key)return;
-  lastReaction.current=key;
+  lastReaction.current=key; // A muted reaction is considered consumed.
+  if(!effectsEnabled||!unlocked)return;
   if(reactionBusy.current&&reactionQueue.current.length>=3)return;
   reactionQueue.current.push({sound:eventSound.sound,receivedAt:Date.now()});
   playQueued();
- },[eventSound,enabled,unlocked,playQueued]);
+ },[eventSound,effectsEnabled,unlocked,playQueued]);
  return {unlock,unlocked};
 }

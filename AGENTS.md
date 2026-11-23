@@ -104,3 +104,11 @@ Use `topRankRun`/`completesFourOfKind` from shared/president.ts for Social eligi
 
 ## Circular game table and private card legality (#25)
 PAPublic includes current-hand `handPlayerCount`, `seats[].finishedPosition`, `myFinishPosition` and private `playRule`. Do not confuse current finishing position with previous hand rank. `client/src/presidentCardLegality.ts` computes possible card ranks plus selection validity from server-provided rule state (including group size and Socials), enabling Pass only when no playable ranks exist on turn; preserve waiting preselection and mixed-rank Card Exchange. Presenter seats are spaced around an ellipse, with a large pile combination callout, visible cards, bot 🤖 and green-bordered finished rank icons. Rank icons: 🇺🇸 👨‍💼 🧑 🖥️ 💩 (🧹 Janitor). Test with client pure/UI and server tests, then on real TV at 4–8 seats.
+
+## Presenter Last Hand takeover + independent music/SFX controls (#28, #29)
+
+Public President / Asshole presentation substitutes a full-size `HandResults` screen for the circular table/sidebar during the between-hand Ready stage (and final ended stage) if there are completed `handRanks`. It returns to the table when the server begins the next hand; no client dismissal timer. Survey Show's `useGameAudio` uses independent, persisted music/SFX toggles with existing volume sliders; gating one must never mute the other. Old master mute initializes both new flags off. President / Asshole presenter music is separately enabled/disabled via `usePresidentMusic`, and phone-specific gameplay sounds via `usePresidentSounds`; no phone music. Tests cover UI branches and audio subsystem separation; continue to use regular merge commits with automatic branch deletion.
+
+## Independent President music/effects *volume* (#29 follow-up)
+
+Ensure the presenter exposes both **Music volume** and **Sound effects volume** as separate visible sliders, not just on/off switches. Player phones expose Effects volume only. The effects hook uses an independent Web Audio master `GainNode`, and the music hook uses the background HTMLAudioElement's volume. Both persist browser-local numeric settings and do not alter the other category. Preserve `president-volume.test.mjs` and `audio-category-controls.test.mjs` and require green GitHub CI before merge.

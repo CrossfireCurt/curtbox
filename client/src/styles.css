@@ -308,3 +308,40 @@
 .pa-card:disabled{opacity:.32;filter:grayscale(.9);cursor:not-allowed}
 @media(max-width:850px){.pa-table-ring{height:690px}.pa-seat{width:clamp(111px,20vw,165px);max-width:24%;padding:7px}.pa-table-ring .pa-table-center{width:56%;max-width:450px}.pa-table-ring .pa-face{width:60px;height:89px;font-size:1.75rem}}
 @media(max-width:560px){.pa-table-ring{height:620px}.pa-seat{width:110px;max-width:27%;padding:5px}.pa-seat strong{font-size:.72rem}.pa-seat-rank-icon{font-size:1.7rem}.pa-table-ring .pa-table-center{width:56%;padding:2px}.pa-pile-type{padding:6px 7px;border-width:3px}.pa-pile-type strong{font-size:1.55rem}.pa-pile-type small{font-size:.68rem}.pa-table-ring .pa-pile{min-height:90px}.pa-table-ring .pa-face{width:51px;height:70px;font-size:1.45rem}.pa-table-ring .pa-play-group small{font-size:.65rem}}
+
+
+/* Between-hand presenter takeover: the table comes back when the next hand starts. */
+.pa-results-screen{min-height:calc(100vh - 190px);max-width:1450px;margin:0 auto 24px;padding:clamp(18px,3.5vw,44px);border:4px solid #e1c68f;border-radius:26px;background:radial-gradient(ellipse at 50% 0%,#225649,#082720 75%);box-shadow:0 10px 40px #0006;color:#fff;display:flex;flex-direction:column;gap:22px}
+.pa-results-banner{display:flex;align-items:center;justify-content:space-between;gap:22px;flex-wrap:wrap}
+.pa-results-banner h2{font-size:clamp(2.4rem,5vw,4.6rem);margin:5px 0 8px;line-height:1.06;color:#ffe1a0}
+.pa-results-banner p{font-size:clamp(1rem,1.7vw,1.3rem);margin:0;color:#e9f3ed}
+.pa-results-ready{display:grid;gap:7px;max-width:370px;min-width:225px;background:#153d33;border:2px solid #c7e0c9;border-radius:15px;padding:16px 19px}
+.pa-results-ready strong{font-size:clamp(1.3rem,2vw,1.8rem);color:#fff6d3}
+.pa-results-ready span{font-size:clamp(.9rem,1.3vw,1.06rem);color:#e5f4ec}
+.pa-results-screen .pa-hand-results{grid-template-columns:repeat(2,minmax(0,1fr));gap:clamp(10px,1.5vw,20px);align-content:start;flex:1}
+.pa-results-screen .pa-result-row{padding:clamp(13px,1.5vw,22px);border:2px solid #729d84;border-radius:15px;background:#123c32}
+.pa-results-screen .pa-result-row.is-president{border:3px solid #efcb80;background:#58462b}
+.pa-results-screen .pa-result-heading{margin-bottom:14px;align-items:center;gap:10px}
+.pa-results-screen .pa-result-title{font-size:clamp(1.2rem,1.8vw,1.7rem);color:#ffe3a9}
+.pa-result-emblem{display:inline-block;margin-right:.22em}
+.pa-results-screen .pa-result-name{font-size:clamp(1.05rem,1.55vw,1.35rem)}
+.pa-results-screen .pa-result-stats{gap:8px}
+.pa-results-screen .pa-result-stat{font-size:clamp(.82rem,1.1vw,1rem);padding:7px 10px;background:#04261e}
+.pa-results-footer{text-align:center;color:#d1e9d9;font-size:clamp(.94rem,1.4vw,1.15rem);border-top:1px solid #e1c68f66;padding-top:16px}
+.pa-results-footer strong{font-size:1.16em;color:#fff3c8;letter-spacing:.08em}
+@media(max-width:800px){.pa-results-screen{min-height:72vh;padding:16px;border-radius:16px}.pa-results-screen .pa-hand-results{grid-template-columns:1fr}.pa-results-banner{align-items:flex-start}.pa-results-ready{width:100%;max-width:none}}
+
+/* Sound effect and music controls have separate independent toggles. */
+.pa-audio-controls{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;align-items:center}
+.pa-audio-controls .pa-sound-toggle{min-width:112px}
+@media(max-width:850px){.pa-audio-controls{width:100%;justify-content:flex-start}}
+
+/* President/Asshole: distinct live volume sliders for presenter music and all effects. */
+.pa-audio-controls .pa-audio-channel{display:flex;flex-direction:column;align-items:stretch;gap:5px;width:clamp(158px,12vw,206px);border:1px solid #d4e9c477;border-radius:10px;background:#082e29;padding:8px 10px}
+.pa-audio-volume{display:grid;grid-template-columns:1fr auto;column-gap:8px;row-gap:4px;align-items:center;color:#e5f3e7;font-size:.78rem;font-weight:800}
+.pa-audio-volume span{color:#ffe4a0;font-variant-numeric:tabular-nums}
+.pa-audio-volume input[type="range"]{grid-column:1/-1;width:100%;accent-color:#ffce65;cursor:pointer}
+.pa-phone-audio{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#0c3229;border:1px solid #6e987e;border-radius:10px;padding:8px 12px;margin:0 0 12px}
+.pa-phone-audio .pa-audio-volume{min-width:155px;flex:1;max-width:270px}
+@media(max-width:850px){.pa-audio-controls .pa-audio-channel{width:clamp(150px,40%,235px)}}
+@media(max-width:420px){.pa-phone-audio{flex-wrap:wrap}.pa-phone-audio .pa-audio-volume{width:100%;max-width:none}}

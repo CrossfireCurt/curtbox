@@ -11,7 +11,8 @@ const types=read('shared/president.ts');
 test('ready phone and host results share named-rank component',()=>{
  assert.match(ui,/function HandResults\(\{game,asshole\}/);
  assert.match(ui,/rankTitle\(p\.position,n,asshole\)/);
- assert.match(ui,/className="pa-ranking"><h2>Last hand<\/h2><HandResults/);
+ assert.match(ui,/resultsTakeover\?<section className="pa-results-screen"/);
+ assert.match(ui,/className="pa-stage-columns"/);
  assert.match(ui,/Ready for another hand\?/);
  assert.match(ui,/game\.handRanks\.length>0&&<HandResults game=\{game\}/);
  assert.doesNotMatch(ui,/\$\{p\.position\}\. \$\{p\.name\}/);
