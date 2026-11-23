@@ -421,3 +421,22 @@
 /* Separate accepted-pass animation: cool blue, distinct from amber SKIPPED. */
 .pa-passed-seat{position:absolute;inset:0;border:2px solid #89d7ff;border-radius:11px;background:#123e67eb;display:grid;place-items:center;color:#e3f6ff;letter-spacing:.12em;font-size:clamp(1.1rem,1.9vw,1.7rem)!important;font-weight:950;text-shadow:0 2px 8px #06172b;pointer-events:none;animation:pa-skip-seat .65s cubic-bezier(.2,.8,.2,1) both;z-index:9}
 @media(prefers-reduced-motion:reduce){.pa-passed-seat{animation:none}}
+
+/* #41 — Short-lived, large emoji overlays without interactive notifications.
+   Position over the player's cards (or their result when a Social ended the hand). */
+.pa-hand-zone,.pa-ready-results{position:relative;isolation:isolate;min-height:118px}
+.pa-hand-zone>.pa-hand{margin:22px 0}
+.pa-hand-event-overlay{position:absolute;inset:0;z-index:35;display:grid;place-items:center;pointer-events:none;user-select:none;font-size:clamp(5rem,22vw,8rem);line-height:1;text-align:center;animation:pa-hand-event-pop-fade 2.6s ease-out both}
+.pa-hand-event-overlay.is-drink{filter:drop-shadow(0 0 19px #f3b34b9c)}
+.pa-hand-event-overlay.is-skip{filter:drop-shadow(0 0 19px #75ccffb0)}
+@keyframes pa-hand-event-pop-fade{0%{opacity:0;transform:scale(.65) rotate(-10deg)}13%{opacity:1;transform:scale(1.13) rotate(4deg)}30%{transform:scale(1)}75%{opacity:1}100%{opacity:0;transform:scale(1.3)}}
+.pa-table-ring .pa-pile{position:relative}
+.pa-social-pile-overlay{position:absolute;inset:0;display:grid;place-items:center;z-index:40;pointer-events:none;user-select:none;font-size:clamp(5.8rem,11vw,9rem);line-height:1;filter:drop-shadow(0 0 23px #ffc775aa);animation:pa-pile-social-then-clear 2.1s ease-out both}
+@keyframes pa-pile-social-then-clear{0%{opacity:0;transform:scale(.65) rotate(-10deg)}15%{opacity:1;transform:scale(1.12) rotate(5deg)}60%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1.36)}}
+/* Personal results should read like a celebration rather than a row with a
+   duplicate username. The question belongs below the result, above Ready up. */
+.pa-phone .pa-result-heading{display:flex;align-items:center;gap:6px;justify-content:center;text-align:center}
+.pa-phone .pa-result-title{font-size:clamp(1.4rem,5vw,2.05rem);line-height:1.22;white-space:normal}
+.pa-ready-results{margin:14px 0 20px}
+.pa-ready-question{font-size:clamp(1.1rem,4.2vw,1.45rem);margin:16px 0 13px;text-align:center}
+@media(prefers-reduced-motion:reduce){.pa-hand-event-overlay,.pa-social-pile-overlay{animation:none}}

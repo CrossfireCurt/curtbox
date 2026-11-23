@@ -31,3 +31,16 @@ test('departed and newly joined players remain distinct',()=>{
  assert.match(ui,/Joining next hand/);
  assert.match(ui,/seat\?\.bot/);
 });
+
+test('player ready result says You are the rank without repeating player name',()=>{
+ assert.match(ui,/viewerId\?\`You're the \$\{rankTitle\(p\.position,n,asshole\)\}!\`/);
+ assert.match(ui,/\{!viewerId&&<span className="pa-result-name"/);
+ assert.match(ui,/viewerId\?'Joining next hand'/);
+ const start=ui.indexOf("game.stage==='ready'&&<div");
+ const end=ui.indexOf("game.stage==='exchange'&&<div",start);
+ const ready=ui.slice(start,end);
+ assert.ok(ready.indexOf('<HandResults')>=0);
+ assert.ok(ready.indexOf('<HandResults')<ready.indexOf('className="pa-ready-question"'));
+ assert.ok(ready.indexOf('className="pa-ready-question"')<ready.indexOf("onAction('president:ready'"));
+ assert.match(ready, /Ready for another hand\?/);
+});
