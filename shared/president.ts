@@ -16,7 +16,18 @@ export function completesFourOfKind(pile:readonly PACard[],cards:readonly PACard
  const run=topRankRun(pile);
  return !!run&&run.rank===rank&&run.count>=1&&run.count<=3&&run.count+cards.length===4;
 }
-export type PAStage = 'ready'|'exchange'|'play'|'decree'|'vote'|'ended';
+export type PAStage = 'ready'|'exchange'|'play'|'decree'|'vote'|'finale'|'ended';
+/** All clients share one server-time finale: opening, ascending reveals, then 10s to results. */
+export const PA_FINALE_INTRO_MS=1800;
+export const PA_FINALE_RANK_MS=800;
+export const PA_FINALE_HOLD_MS=10000;
+export function paFinaleRevealEndsAt(startedAt:number,rankCount:number){
+ return startedAt+PA_FINALE_INTRO_MS+Math.max(0,rankCount)*PA_FINALE_RANK_MS;
+}
+export function paFinaleVisibleRanks(startedAt:number,serverNow:number,rankCount:number){
+ return Math.min(Math.max(0,rankCount),Math.max(0,
+  Math.floor((serverNow-startedAt-PA_FINALE_INTRO_MS)/PA_FINALE_RANK_MS)+1));
+}
 export type PADecreeKey = 'unequal_burden'|'rank_seating'|'reverse_deal'|'reverse_play'|'double_trouble'|'card_exchange'|'democracy'|'term_limits'|'max_active'|'drink_twos'|'require_ack';
 export type PADecreeAction = {kind:'enact'|'repeal';key:PADecreeKey;value?:number};
 export interface PASettings {
@@ -45,7 +56,7 @@ export interface PAState {
   lastPass?:{by:string;at:number;serial:number};
   lastPlayed?:{by:string;at:number;serial:number};
   drinkEvents?:Record<string,{serial:number;at:number}>;
-  exchange:PAExchange[]; stageEndsAt?:number; decrees:PADecree[];
+  exchange:PAExchange[]; stageEndsAt?:number; finaleStartedAt?:number; decrees:PADecree[];
   pendingPresident?:string; decreeActionsRemaining:number; vote?:PAVote;
   presidencies:Record<string,number>; streaks:Record<string,number>; longestStreak:Record<string,number>;
   playerStats?:Record<string,PAPlayerStats>;handStats?:Record<string,PAPlayerStats>;
@@ -57,7 +68,7 @@ export interface PAPublic {
   handPlayerCount:number;myFinishPosition?:number;
   /** Phone-only combination requirement; never exposes public pile cards or opponents' hands. */
   playRule?:{empty:boolean;rank?:string;count:number;openingCard?:PACard;doubleTrouble:boolean};
-  currentPlayerId?:string;turnEndsAt?:number;stageEndsAt?:number;pile?:PACard[];pileOwner?:string;
+  currentPlayerId?:string;turnEndsAt?:number;stageEndsAt?:number;finaleStartedAt?:number;pile?:PACard[];pileOwner?:string;
   pilePlays?:PAPilePlay[];pileHistory?:PAClearedPile[];
   lastClear?:PAState['lastClear'];lastSkip?:PAState['lastSkip'];lastPass?:PAState['lastPass'];
   /** Presenter card sound event and private affected-player drink cue. */

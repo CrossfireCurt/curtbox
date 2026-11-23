@@ -9,7 +9,8 @@ const ui=read('client/src/PresidentAsshole.tsx');
 const app=read('client/src/App.tsx');
 test('presentation header is minimal; audio and game settings share modal',()=>{
  const start=ui.indexOf('className="pa-stage-head"');
- const end=ui.indexOf('{resultsTakeover?<section');
+ const end=ui.indexOf("{game.stage==='finale'?<GameOverFinale",start);
+ assert.ok(end>start,'expected the finale/results boundary after the minimal header');
  const header=ui.slice(start,end);
  assert.doesNotMatch(header,/pa-audio-controls|Music volume|Sound effects volume/);
  assert.match(ui,/settingsOpen&&onCloseSettings&&<div className="modal-backdrop"/);

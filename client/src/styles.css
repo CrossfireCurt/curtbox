@@ -442,3 +442,30 @@
 .pa-skipped-seat{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}
 .pa-skipped-seat .pa-event-emoji{display:block;font-size:clamp(1.8rem,3vw,2.75rem);line-height:1}
 .pa-skipped-seat .pa-event-label{display:block;font-size:clamp(.76rem,1.25vw,1rem);letter-spacing:.08em;font-weight:950;line-height:1.1}
+
+/* TV-first President / Asshole finale. Server timestamps control each reveal;
+   CSS animates newly visible ranks without changing the countdown. */
+.pa-finale-screen{min-height:calc(100vh - 160px);max-width:1200px;margin:0 auto 24px;padding:clamp(22px,3vw,48px);border:3px solid #e7c77d;border-radius:25px;background:radial-gradient(ellipse at 50% 2%,#2b6550 0%,#113e33 48%,#091e21 100%);box-shadow:0 16px 60px #0008,inset 0 0 0 4px #f4dc8d20;color:#fff;display:flex;flex-direction:column;align-items:center;gap:22px;overflow:hidden}
+.pa-finale-heading{text-align:center;animation:pa-finale-title .85s cubic-bezier(.2,.7,.2,1) both}
+.pa-finale-heading .section-kicker{color:#ffe7a7;font-size:clamp(.72rem,1.25vw,1rem)}
+.pa-finale-heading h1{font-size:clamp(3.1rem,7.5vw,6.8rem);font-weight:950;letter-spacing:-.06em;color:#ffe2a0;line-height:1.05;margin:9px 0;text-shadow:0 3px 19px #0009,0 0 34px #fed78040}
+.pa-finale-heading p{color:#d8e9dd;font-size:clamp(.95rem,1.6vw,1.25rem);margin:0}
+.pa-finale-rankings{width:min(100%,820px);display:flex;flex-direction:column;gap:9px;flex:1;justify-content:center}
+.pa-finale-rank{display:grid;grid-template-columns:68px minmax(0,1fr) 54px;align-items:center;gap:16px;border:2px solid #8fae9b7d;border-radius:13px;padding:10px 15px;background:#102f2be8;box-shadow:0 6px 17px #0005;animation:pa-finale-rank-enter .6s cubic-bezier(.22,.75,.28,1.13) both}
+.pa-finale-rank.is-champion{border-color:#ffd979;background:linear-gradient(110deg,#665129,#443824 72%,#2b3e2d);box-shadow:0 0 0 3px #ffd86c33,0 0 32px #f9d47a66;animation:pa-finale-champion-enter .85s cubic-bezier(.2,.8,.15,1.1) both}
+.pa-finale-emblem{font-size:clamp(2.2rem,3.6vw,3.3rem);text-align:center;line-height:1}
+.pa-finale-rank-info{display:flex;flex-direction:column;gap:2px;min-width:0}
+.pa-finale-rank-title{font-size:clamp(.86rem,1.55vw,1.18rem);font-weight:850;color:#f0d28c;letter-spacing:.04em}
+.pa-finale-rank-info strong{font-size:clamp(1.15rem,2.4vw,2.05rem);line-height:1.1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pa-finale-place{color:#f1d28d;font-weight:900;font-size:clamp(1.12rem,1.7vw,1.48rem);font-variant-numeric:tabular-nums;text-align:right}
+.pa-finale-empty{text-align:center;font-size:1.25rem;color:#d6e7d8}
+.pa-finale-footer{min-height:68px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:clamp(1rem,1.8vw,1.35rem);font-weight:700;color:#dcebe1}
+.pa-finale-footer strong{display:inline-block;margin-left:8px;font-size:clamp(1.65rem,3vw,2.35rem);color:#ffe1a0;font-variant-numeric:tabular-nums}
+.pa-finale-phone{text-align:center;min-height:180px;display:flex;flex-direction:column;justify-content:center;align-items:center}
+.pa-finale-phone h2{font-size:clamp(2.15rem,8vw,3.5rem);color:#f3d488;margin:12px 0}
+.pa-finale-phone-countdown strong{font-variant-numeric:tabular-nums;font-size:1.6em;color:#ffe1a0}
+@keyframes pa-finale-title{from{opacity:0;transform:translateY(-20px) scale(.92)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes pa-finale-rank-enter{from{opacity:0;transform:translateY(34px) scale(.93);filter:blur(5px)}to{opacity:1;transform:translateY(0) scale(1);filter:blur(0)}}
+@keyframes pa-finale-champion-enter{from{opacity:0;transform:translateY(42px) scale(.85);filter:blur(8px)}60%{opacity:1;transform:translateY(-5px) scale(1.045);filter:blur(0)}to{opacity:1;transform:translateY(0) scale(1);filter:blur(0)}}
+@media(max-width:650px){.pa-finale-screen{padding:16px;min-height:70vh;gap:13px}.pa-finale-rankings{gap:7px}.pa-finale-rank{grid-template-columns:43px minmax(0,1fr) 36px;gap:8px;padding:8px 9px}.pa-finale-emblem{font-size:2rem}.pa-finale-footer{min-height:54px}}
+@media(prefers-reduced-motion:reduce){.pa-finale-heading,.pa-finale-rank,.pa-finale-rank.is-champion{animation:none}}

@@ -2,7 +2,7 @@
  * persisted atomically with the room by server/index.ts. */
 import {randomInt} from 'node:crypto';
 import type {Participant,RoomState} from '../../shared/types.js';
-import {PA_DEFAULT_SETTINGS,PA_DECREE_NAMES,topRankRun,completesFourOfKind} from '../../shared/president.js';
+import {PA_DEFAULT_SETTINGS,PA_DECREE_NAMES,PA_FINALE_HOLD_MS,paFinaleRevealEndsAt,topRankRun,completesFourOfKind} from '../../shared/president.js';
 import type {PACard,PADecreeAction,PADecreeKey,PAExchange,PASettings,PAState,PAPublic,PARank,PAPilePlay,PAPlayerStats} from '../../shared/president.js';
 
 const RANKS=['3','4','5','6','7','8','9','10','J','Q','K','A','2'];
@@ -462,6 +462,11 @@ export function advancePA(r:RoomState,now=Date.now(),random:()=>number=Math.rand
  const g=r.pa;if(!g)return;repairPAController(r,now);maybeStart(r,now);
  // Multiple phase boundaries may be overdue after restart; bounded for safety.
  for(let n=0;n<10;n++){
+  if(g.stage==='finale'&&g.stageEndsAt!==undefined&&g.stageEndsAt<=now){
+   g.stage='ended';g.event='Game ended';g.stageEndsAt=undefined;
+   r.status='results';
+   continue;
+  }
   if(g.stage==='play'&&g.turnEndsAt!==undefined&&g.turnEndsAt<=now){
    const when=g.turnEndsAt;const id=g.turn!;
    if(!g.pile.length){const legal=g.hands[id]??[];if(legal.length){const chosen=g.handNumber===1&&!g.lastPlay&&!g.lastClear?legal.find(c=>c===r.paSettings!.openingCard)??legal[0]:legal[0];playPA(r,id,[chosen],when,false,true);continue;}}
@@ -489,11 +494,14 @@ export function advancePA(r:RoomState,now=Date.now(),random:()=>number=Math.rand
   break;
  }
 }
-export function endPA(r:RoomState,id:string){
+export function endPA(r:RoomState,id:string,now=Date.now()){
  if(r.primaryId!==id)throw Error('Only the Primary Controller may end the game.');
  if(current(r).length>=4)throw Error('End Game is available only with fewer than four players.');
  if(!r.pa||r.pa.stage!=='ready')throw Error('Finish the current hand first.');
- r.pa.stage='ended';r.pa.event='Game ended';r.status='results';
+ const g=r.pa;
+ g.stage='finale';g.finaleStartedAt=now;
+ g.stageEndsAt=paFinaleRevealEndsAt(now,g.handRanks.length)+PA_FINALE_HOLD_MS;
+ g.event='Game over!';r.status='playing';
 }
 export function publicPA(r:RoomState,me:Participant):PAPublic|undefined{
  const g=r.pa;if(!g)return;const host=me.role==='host',myId=me.id;
@@ -510,7 +518,7 @@ export function publicPA(r:RoomState,me:Participant):PAPublic|undefined{
   doubleTrouble:has(g,'double_trouble')
  }:undefined;
  return {stage:g.stage,handNumber:g.handNumber,seats:seats.map(id=>({id,name:g.names[id]??player(r,id)?.name??'Player',cards:g.hands[id]?.length??0,position:g.previousRanks.find(x=>x.id===id)?.position,finishedPosition:finishPosition(id),online:player(r,id)?.online??false,ready:isBot(r,id)||g.ready.includes(id),bot:isBot(r,id),nextHand:g.stage!=='ready'&&!g.active.includes(id)})),
-  currentPlayerId:g.turn,turnEndsAt:g.turnEndsAt,stageEndsAt:g.stageEndsAt,
+  currentPlayerId:g.turn,turnEndsAt:g.turnEndsAt,stageEndsAt:g.stageEndsAt,finaleStartedAt:g.finaleStartedAt,
   handPlayerCount,myFinishPosition:!host?finishPosition(myId):undefined,playRule,
   pile:host?[...g.pile]:undefined,pileOwner:host?g.pileOwner:undefined,
   pilePlays:host?pilePlays(g).map(p=>({...p,cards:[...p.cards]})):undefined,
