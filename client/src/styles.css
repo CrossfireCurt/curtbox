@@ -330,3 +330,8 @@
 .pa-results-footer{text-align:center;color:#d1e9d9;font-size:clamp(.94rem,1.4vw,1.15rem);border-top:1px solid #e1c68f66;padding-top:16px}
 .pa-results-footer strong{font-size:1.16em;color:#fff3c8;letter-spacing:.08em}
 @media(max-width:800px){.pa-results-screen{min-height:72vh;padding:16px;border-radius:16px}.pa-results-screen .pa-hand-results{grid-template-columns:1fr}.pa-results-banner{align-items:flex-start}.pa-results-ready{width:100%;max-width:none}}
+
+/* Sound effect and music controls have separate independent toggles. */
+.pa-audio-controls{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;align-items:center}
+.pa-audio-controls .pa-sound-toggle{min-width:112px}
+@media(max-width:850px){.pa-audio-controls{width:100%;justify-content:flex-start}}

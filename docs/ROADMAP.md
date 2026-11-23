@@ -79,3 +79,7 @@ Complete four of kind using the top contiguous same-rank run across earlier play
 
 ## Issue #25 — Circular table, readable pile, bot/rank icons and legal cards
 The board now arranges seats around the central pile and strongly labels its current combination; card values are larger. Bots use 🤖; finished seats have a green border and rank symbols. Player phones show expected finishing rank and disable card ranks which cannot form legal moves, showing Pass alone when no cards can be played. The legal context is server-produced without exposing pile cards to phones. CI tests and live 4–8 seat visual/interaction QA are separate validation steps.
+
+## Completed #28 / #29 — Last hand takeover and independent audio categories
+
+At the end of a President / Asshole hand, the presenter shows a full-screen Last hand results/ready view instead of leaving the stats below an empty circular table; the table returns when the server begins the next hand. Music and SFX each have a separate persisted enable/disable setting: Survey Show presenter uses separate music/SFX checkboxes and volume sliders (with legacy master mute migration), while President / Asshole presenter uses an independent self-hosted music toggle and existing independent SFX toggle. Player phones get SFX only; no unsolicited music. CI regression tests cover both. Manual 1080p and actual playback checks remain recommended.

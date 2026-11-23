@@ -123,3 +123,7 @@ The optional **Curtbox TV** Android application is in `android-tv/`. It lets Goo
 
 ### President / Asshole pile display
 The public presentation now shows **legible individual cards grouped by each accepted play**, with the latest group first, a **Single / Pair / Triple / Four-of-a-kind** label, and a bounded **Pile History** sidebar identifying who cleared each pile. These display-only fields are never exposed to player phones. Full details: `docs/games/PRESIDENT_ASSHOLE_SPEC.md`.
+
+### Presentation and audio preferences
+
+Between President / Asshole hands, the public presenter displays a full-screen **Last hand** rankings/statistics view until players start the next hand; the circular table then returns. **Music and sound effects can be muted independently**: Survey Show's host Audio panel has separate toggles and sliders, and President / Asshole's presenter has separate Music and Effects buttons. The phone only controls its own gameplay sound effects; background music never plays on the phone.
