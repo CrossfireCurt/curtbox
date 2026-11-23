@@ -4,6 +4,7 @@ import {usePresidentSounds,usePresidentMusic} from './presidentAudio';
 import {toggleCardSelection,availableCardSelection,presidentPlayButtonMode} from './presidentSelection';
 import {playableCardRanks,validPresidentSelection} from './presidentCardLegality';
 import {presentPile} from './presentPile';
+import {cardBackStackLayout} from './presidentSeatCards';
 import type {RoomView} from '../../shared/types';
 import type {PACard,PADecreeAction,PADecreeKey,PASettings,PAPublic,PAPlayerStats} from '../../shared/president';
 import {PA_DECREE_NAMES} from '../../shared/president';
@@ -18,6 +19,14 @@ function Card({card,selected=false,disabled=false,onClick}:{card:PACard;selected
  return <button type="button" className={`pa-card ${isRed(card)?'pa-red':''} ${selected?'pa-selected':''}`} disabled={disabled} onClick={onClick} aria-pressed={selected} aria-label={`${card.slice(0,-1)} of ${card.endsWith('C')?'clubs':card.endsWith('S')?'spades':card.endsWith('H')?'hearts':'diamonds'}`}><span>{label(card)}</span><b>{suit(card)}</b></button>;
 }
 function formatLeft(ends:number|undefined,now:number,offset:number){return ends===undefined?'':`${Math.max(0,Math.ceil((ends-now+offset)/1000))}s`;}
+/** Show a visible card-back for every held card, capped to fit narrow seats. */
+function FaceDownCardStack({count}:{count:number}){
+ const layout=cardBackStackLayout(count);
+ return <span className="pa-seat-card-stack" role="img" aria-label={`${layout.count} ${layout.count===1?'card':'cards'} remaining`} style={{width:layout.width}}>
+  {Array.from({length:layout.visible},(_,i)=><span className="pa-seat-card-back" key={i} aria-hidden="true" style={{left:i*layout.step,top:(layout.visible-1-i)*.6,zIndex:i+1}}><span className="pa-seat-card-pattern"/></span>)}
+  {layout.hidden>0&&<span className="pa-seat-card-overflow" aria-hidden="true">+${layout.hidden}</span>}
+ </span>;
+}
 function rankTitle(pos:number,n:number,asshole:boolean){if(pos===1)return 'President';if(pos===2)return 'Vice President';if(pos===n-1)return 'Secretary';if(pos===n)return asshole?'Asshole':'Janitor';return 'Citizen';}
 export function rankIcon(pos:number,n:number,asshole:boolean){if(pos===1)return '🇺🇸';if(pos===2)return '👨‍💼';if(pos===n-1)return '🖥️';if(pos===n)return asshole?'💩':'🧹';return '🧑';}
 const statLabels:{key:keyof PAPlayerStats;label:string}[]=[
@@ -149,17 +158,22 @@ export function PresidentAsshole({view,now,offset,onAction}:Props){
      const angle=2*Math.PI*i/Math.max(1,game.seats.length)-Math.PI/2;
      const seatStyle={left:`${50+40*Math.cos(angle)}%`,top:`${50+39*Math.sin(angle)}%`};
      const finish=p.finishedPosition;
-     const finishedRank=finish?rankTitle(finish,game.handPlayerCount,s.mode==='asshole'):undefined;
+     const rankPosition=finish??p.position;
+     const rankTotal=finish?game.handPlayerCount:rankCount;
+     const seatRank=rankPosition?rankTitle(rankPosition,rankTotal,s.mode==='asshole'):undefined;
      return <div className={'pa-seat'+(game.currentPlayerId===p.id?' active':'')+(finish?' finished':'')} key={p.id} style={seatStyle}>
+      {game.stage==='play'&&game.currentPlayerId===p.id&&game.turnEndsAt!==undefined&&<span className={'pa-seat-timer'+(game.turnEndsAt-now+offset<=5000?' is-low':'')} role="timer" aria-label="Time left on current player's turn">{formatLeft(game.turnEndsAt,now,offset)}</span>}
       <div className="pa-seat-identity">
-       <strong><ConnectionName name={p.name} offline={!p.online} bot={p.bot}/>{p.bot&&<span className="pa-bot-icon" role="img" aria-label="Bot" title="Bot">🤖</span>}</strong>
-       {p.position&&!finish&&<small>{rankTitle(p.position,rankCount,s.mode==='asshole')}</small>}
+       <div className="pa-seat-name-row">
+        <strong className="pa-seat-player-name"><ConnectionName name={p.name} offline={!p.online} bot={p.bot}/></strong>
+        {p.bot&&<span className="pa-bot-icon" role="img" aria-label="Bot" title="Bot">🤖</span>}
+        {rankPosition&&<span className="pa-seat-rank-icon" role="img" aria-label={seatRank} title={seatRank}>{rankIcon(rankPosition,rankTotal,s.mode==='asshole')}</span>}
+       </div>
       </div>
-      {finish?<div className="pa-seat-finished" aria-label={`Finished: ${finishedRank}`}>
-       <span className="pa-seat-rank-icon" role="img" aria-label={finishedRank}>{rankIcon(finish,game.handPlayerCount,s.mode==='asshole')}</span>
-       <small>{finishedRank}</small>
-      </div>:<span className="pa-seat-count">{game.stage==='ready'?(p.ready?'✓ Ready':'Waiting'):p.nextHand?'Next hand':`${p.cards} cards`}</span>}
-      {game.stage==='play'&&game.currentPlayerId===p.id&&game.turnEndsAt!==undefined&&<span className={'pa-seat-timer'+(game.turnEndsAt-now+offset<=5000?' is-low':'')} role="timer" aria-label="Time left on current player's turn">⏱ {formatLeft(game.turnEndsAt,now,offset)}</span>}
+      {finish?<div className="pa-seat-finished" role="status" aria-label={`Finished as ${seatRank}`}>✓ Finished</div>:
+       game.stage==='ready'?<span className="pa-seat-ready">{p.ready?'✓ Ready':'Waiting'}</span>:
+       p.nextHand?<span className="pa-seat-ready">Next hand</span>:
+       <FaceDownCardStack count={p.cards}/>}
       {activeSkip?.skipped===p.id&&<span key={activeSkip.serial} className="pa-skipped-seat" role="status">SKIPPED</span>}
      </div>;
     })}
