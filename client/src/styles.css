@@ -204,3 +204,11 @@
 .pa-phone{max-width:640px;padding:14px;margin:0 auto}.pa-message{margin-bottom:15px}.pa-hand{display:flex;gap:5px;flex-wrap:wrap;justify-content:center;max-width:100%;margin:22px 0}.pa-card{width:clamp(40px,11vw,62px);height:clamp(70px,18vw,94px);border-radius:8px;background:#fff;color:#222b37;border:2px solid #c5cbd4;display:flex;flex-direction:column;justify-content:space-between;text-align:left;padding:5px;box-shadow:0 3px 8px #0003;cursor:pointer;font-weight:800;font-size:16px;transition:transform .12s,border .12s}.pa-card b{text-align:center;font-size:26px}.pa-card.pa-selected{transform:translateY(-10px);border:3px solid #e5aa4c;box-shadow:0 0 0 3px #e5aa4c44}.pa-card:disabled{opacity:.55;cursor:default}.pa-actions{display:flex;gap:10px;justify-content:stretch}.pa-actions>*{flex:1}.pa-decree-list{max-height:310px;overflow:auto;display:flex;flex-direction:column;gap:7px;margin:14px 0}.pa-option{display:flex;gap:10px;align-items:center;padding:10px 7px;border:1px solid #ffffff28;border-radius:5px}.pa-drink{border-color:#d7ad6f}.pa-settings{max-height:68vh;overflow:auto}
 .pa-wait-message{color:#d4ebdc;font-size:22px}.pa-player-head h2{margin:8px 0}.pa-stage .panel{min-width:0}
 @media(max-width:850px){.pa-stage-columns{grid-template-columns:1fr}.pa-table{min-height:400px;padding:12px;border-width:5px;border-radius:25px}.pa-people{grid-template-columns:repeat(2,minmax(0,1fr))}.pa-seat{padding:6px;font-size:12px}.pa-seat span{font-size:11px}.pa-aside{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}}
+
+/* Android TV presenter: always-visible D-pad focus, without altering browser players. */
+.tv-mode :is(button, a, input, select, textarea, [tabindex]):focus {
+  outline: 4px solid #f2dc9a !important;
+  outline-offset: 3px !important;
+  box-shadow: 0 0 0 6px #241831, 0 0 18px #c2a6ff !important;
+}
+.tv-mode button:focus { border-color: #f2dc9a !important; }
