@@ -47,13 +47,13 @@ test('presenter countdown belongs to the active player seat and follows server d
  assert.match(css,/\.pa-seat-timer\.is-low/);
  assert.match(css,/prefers-reduced-motion:reduce/);
 });
-test('audio is user-controllable and Socials use licensed cheers with a local fallback',()=>{
+test('audio is user-controllable and Socials use downloaded Mixkit audio with a synthesized fallback',()=>{
  const audio=read('client/src/presidentAudio.ts'),ui=read('client/src/PresidentAsshole.tsx');
  assert.match(audio,/new AudioContext\(\)/);
  assert.match(audio,/localStorage\.setItem/);
  assert.match(ui,/sounds\.toggle/);
  const synthesized=audio.split('export function usePresidentMusic')[0];
- assert.match(synthesized,/sfxmint\.com\/dl\/tavern-ambience-05\.mp3/);
+ assert.match(synthesized,/\/audio\/sfx\/mixkit-social-cheer-459\.mp3/);
  assert.match(synthesized,/media\.play\(\)\.catch/);
  assert.match(synthesized,/playSound\(context\.current,'social',output\.current\)/);
  assert.match(audio,/\/audio\/music\//);
