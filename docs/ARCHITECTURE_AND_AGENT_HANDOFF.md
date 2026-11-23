@@ -240,3 +240,6 @@ The pure `client/src/presidentSelection.ts` helper switches a Play/Social select
 
 ## Randomized bot turn and Social wait (issue #7)
 `botDelayPA(kind,random)` samples once per new bot action key: normal play 1800–3600 ms, Social 2400–4800 ms. `advancePA(r,now,random)` stores the deadline under `g.botActionAt` for persistence and never resamples while a task is pending. Short host turn timers cap the normal delay before the turn expiry. The Social key embeds `lastPlay.serial` and is replaced if another player acts. Existing per-room locking and validators remain authoritative.
+
+## Results and counters (#8), merge policy
+Current/last-hand `g.handStats` and lifetime `g.playerStats` are keyed by participant ID in the persisted room. Both update on valid actions and pile clears; only hand counters reset on the next deal. `PAPublic` includes sanitized public stats and existing presidencies/streaks, never hidden hand cards. Shared React `HandResults` renders named finish ranks and stats on both phone and board, preserving a departed player's finished result and labeling unranked newcomers. **Use regular GitHub merge commits** to preserve ancestry; after successful merges, allow the Action to delete the merged branch. Existing squash history is not rewritten.

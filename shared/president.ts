@@ -15,6 +15,8 @@ export interface PAExchange {upper:string;lower:string;count:number;original:PAC
 export interface PABot {id:string;name:string;joinedAt:number}
 export interface PAPilePlay {by:string;cards:PACard[];serial:number}
 export interface PAClearedPile {by:string;reason:string;at:number;serial:number;cards:PACard[];plays:PAPilePlay[]}
+/** Counters are server-owned, never computed from partial public snapshots. */
+export interface PAPlayerStats {cardsPlayed:number;pilesCleared:number;socials:number;twosPlayed:number;passes:number}
 export interface PAState {
   stage:PAStage; handNumber:number; seats:string[]; hands:Record<string,PACard[]>; active:string[];
   bots:PABot[]; botActionKey?:string; botActionAt?:number;
@@ -27,6 +29,7 @@ export interface PAState {
   exchange:PAExchange[]; stageEndsAt?:number; decrees:PADecree[];
   pendingPresident?:string; decreeActionsRemaining:number; vote?:PAVote;
   presidencies:Record<string,number>; streaks:Record<string,number>; longestStreak:Record<string,number>;
+  playerStats?:Record<string,PAPlayerStats>;handStats?:Record<string,PAPlayerStats>;
   names:Record<string,string>; departed:string[]; drinking:Record<string,string[]>;
   event?:string;
 }
@@ -40,6 +43,8 @@ export interface PAPublic {
   myPendingDrinks?:string[];canSocial?:boolean;socialRequirement?:{rank:string;count:number};canPlay?:boolean;isPresident?:boolean;
   vote?:{proposals:PADecreeAction[];votesCast:number;myVote?:number;deadline:number;tieIndices?:number[]};
   presidencies:Record<string,number>;longestStreak:Record<string,number>;names:Record<string,string>;decreeActionsRemaining:number;
+  /** Current/last hand and all-time public gameplay counters, keyed by player ID. */
+  handStats:Record<string,PAPlayerStats>;playerStats:Record<string,PAPlayerStats>;
 }
 export const PA_DEFAULT_SETTINGS:PASettings={mode:'president',turnSeconds:30,exchangeSeconds:30,decreeSeconds:30,voteSeconds:30,graceSeconds:30,consecutiveForDecree:2,openingCard:'4C',social:false,termDuration:3,termSelfExpires:false,botCount:0};
 export const PA_DECREE_NAMES:Record<PADecreeKey,string>={unequal_burden:'Unequal Burden',rank_seating:'Royal Seating Arrangement',reverse_deal:'Reverse the Deal',reverse_play:'Reverse the Table',double_trouble:'Double Trouble',card_exchange:'Card Exchange',democracy:'Democracy',term_limits:'Term Limits',max_active:'Maximum Active Decrees',drink_twos:'2 = Drink',require_ack:'Require Acknowledgment'};

@@ -3,7 +3,7 @@
 import {randomInt} from 'node:crypto';
 import type {Participant,RoomState} from '../../shared/types.js';
 import {PA_DEFAULT_SETTINGS,PA_DECREE_NAMES} from '../../shared/president.js';
-import type {PACard,PADecreeAction,PADecreeKey,PAExchange,PASettings,PAState,PAPublic,PARank,PAPilePlay} from '../../shared/president.js';
+import type {PACard,PADecreeAction,PADecreeKey,PAExchange,PASettings,PAState,PAPublic,PARank,PAPilePlay,PAPlayerStats} from '../../shared/president.js';
 
 const RANKS=['3','4','5','6','7','8','9','10','J','Q','K','A','2'];
 const SUITS=['C','D','H','S'];
@@ -40,7 +40,7 @@ export function validatePASettings(value:Partial<PASettings>){
   else if(!safeSeconds(Number(v),k==='consecutiveForDecree'?1:1,k==='consecutiveForDecree'?20:k==='termDuration'?100:300))throw Error(`Invalid ${k}`);
  }
 }
-export function createPA(r:RoomState){r.paSettings={...PA_DEFAULT_SETTINGS};r.pa={stage:'ready',handNumber:0,seats:[],hands:{},active:[],bots:[],ready:[],previousRanks:[],finished:[],handRanks:[],passed:[],pile:[],pilePlays:[],pileHistory:[],serial:0,exchange:[],decrees:[],decreeActionsRemaining:0,presidencies:{},streaks:{},longestStreak:{},names:{},departed:[],drinking:{}};}
+export function createPA(r:RoomState){r.paSettings={...PA_DEFAULT_SETTINGS};r.pa={stage:'ready',handNumber:0,seats:[],hands:{},active:[],bots:[],ready:[],previousRanks:[],finished:[],handRanks:[],passed:[],pile:[],pilePlays:[],pileHistory:[],serial:0,exchange:[],decrees:[],decreeActionsRemaining:0,presidencies:{},streaks:{},longestStreak:{},playerStats:{},handStats:{},names:{},departed:[],drinking:{}};}
 export function configurePA(r:RoomState,patch:Partial<PASettings>){
  if(!r.paSettings||!r.pa)throw Error('Not a President / Asshole room.');
  validatePASettings(patch);
@@ -101,7 +101,7 @@ function beginHand(r:RoomState,now:number){
   for(const id of [...ranked(g,ids)].reverse().slice(0,extra))deficits[id]++;
   while(cards.length){for(const id of dealOrder)if(deficits[id]>0){hands[id].push(cards.pop()!);deficits[id]--;}}
  }else{let n=0;while(cards.length)hands[dealOrder[n++%dealOrder.length]].push(cards.pop()!);}
- g.handNumber=newHand;g.hands=hands;g.active=ids;g.ready=[];g.finished=[];g.handRanks=[];g.passed=[];g.pile=[];g.pileOwner=undefined;g.pileRank=undefined;g.lastPlay=undefined;g.lastClear=undefined;g.lastSkip=undefined;g.pilePlays=[];g.pileHistory=[];g.serial++;
+ g.handNumber=newHand;g.hands=hands;g.active=ids;g.ready=[];g.finished=[];g.handRanks=[];g.passed=[];g.pile=[];g.pileOwner=undefined;g.pileRank=undefined;g.lastPlay=undefined;g.lastClear=undefined;g.lastSkip=undefined;g.pilePlays=[];g.pileHistory=[];g.handStats={};g.serial++;
  const leader=newHand===1?ids.find(id=>hands[id].includes(s.openingCard)):low;
  chooseLead(g,leader);g.turnEndsAt=now+s.turnSeconds*1000;g.stage='play';g.event=`Hand ${newHand} dealt`;
  g.exchange=[];
@@ -138,12 +138,22 @@ function pilePlays(g:PAState):PAPilePlay[]{
  const earlier=g.pile.slice(0,-g.lastPlay.count);
  return [...(earlier.length?[{by:'',cards:earlier,serial:-1}]:[]),{by:g.lastPlay.player,cards:[...g.lastPlay.cards],serial:g.lastPlay.serial}];
 }
+const emptyStats=():PAPlayerStats=>({cardsPlayed:0,pilesCleared:0,socials:0,twosPlayed:0,passes:0});
+function addStat(g:PAState,id:string,key:keyof PAPlayerStats,value=1){
+ if(!id)return;
+ const all=(g.playerStats??={}),hand=(g.handStats??={});
+ for(const records of [all,hand]){
+  const row=records[id]??=emptyStats();
+  row[key]+=value;
+ }
+}
 function archivePile(g:PAState,by:string,reason:string,now:number){
  if(!g.pile.length)return;
  const serial=++g.serial;
  const record={by,cards:[...g.pile],plays:pilePlays(g).map(p=>({...p,cards:[...p.cards]})),reason,at:now,serial};
  g.lastClear={by,cards:[...g.pile],reason,at:now,serial};
  g.pileHistory=[...(g.pileHistory??[]).slice(-7),record];
+ addStat(g,by,'pilesCleared');
 }
 function clear(g:PAState,by:string,reason:string,now:number){
  archivePile(g,by,reason,now);
@@ -190,6 +200,9 @@ export function playPA(r:RoomState,id:string,cards:PACard[],now=Date.now(),socia
  if(!social&&g.pile.length&&!special){if(cards.length!==g.lastPlay?.count)throw Error('Match the number of cards in the latest play.');if(rank<(g.pileRank??-1))throw Error('You must play a higher rank.');}
  const equal=!social&&g.pile.length>0&&rank===g.pileRank;
  g.hands[id]=g.hands[id].filter(c=>!cards.includes(c));g.pile.push(...cards);g.pileOwner=id;g.pileRank=rank;g.lastPlay={player:id,rank,count:cards.length,cards:[...cards],serial:++g.serial};(g.pilePlays??=[]).push({by:id,cards:[...cards],serial:g.lastPlay.serial});g.passed=[];
+ addStat(g,id,'cardsPlayed',cards.length);
+ if(social)addStat(g,id,'socials');
+ if(rank===12)addStat(g,id,'twosPlayed',cards.length);
  if(rank===12&&has(g,'drink_twos'))for(const target of g.active)if(target!==id&&!isBot(r,target)&&!g.finished.includes(target))(g.drinking[target]??=[]).push(`${g.names[id]} played a 2 — drink`);
  const ended=finishCards(r,id,now);if(ended)return;
  if(social||special){clear(g,id,social?'Social':'Special clear',now);g.turnEndsAt=now+r.paSettings!.turnSeconds*1000;}
@@ -206,6 +219,7 @@ export function passPA(r:RoomState,id:string,now=Date.now(),manual=true){
  if(manual)ensureUnblocked(g,id);
  if(!g.pile.length)throw Error('You must lead when the pile is empty.');
  if(manual&&!isBot(r,id)&&r.paSettings!.mode==='asshole')(g.drinking[id]??=[]).push('Pass = Drink');
+ addStat(g,id,'passes');
  g.passed=uniq([...g.passed,id]);
  const others=g.active.filter(x=>!g.finished.includes(x)&&x!==g.pileOwner);
  if(others.every(x=>g.passed.includes(x))){const leader=g.pileOwner!;clear(g,leader,'Everyone passed',now);g.turnEndsAt=now+r.paSettings!.turnSeconds*1000;}
@@ -443,5 +457,6 @@ export function publicPA(r:RoomState,me:Participant):PAPublic|undefined{
   socialRequirement:!host&&r.paSettings!.social&&g.lastPlay&&g.lastPlay.player!==myId&&g.lastPlay.rank!==12?{rank:RANKS[g.lastPlay.rank],count:4-g.lastPlay.count}:undefined,
   canPlay:!host&&g.turn===myId,isPresident:!host&&g.pendingPresident===myId,
   vote:g.vote?{proposals:g.vote.proposals,votesCast:Object.keys(g.vote.votes).length,myVote:!host?g.vote.votes[myId]:undefined,deadline:g.vote.deadline,tieIndices:g.vote.tieIndices}:undefined,
-  presidencies:g.presidencies,longestStreak:g.longestStreak,names:g.names,decreeActionsRemaining:g.decreeActionsRemaining};
+  presidencies:g.presidencies,longestStreak:g.longestStreak,names:g.names,decreeActionsRemaining:g.decreeActionsRemaining,
+  handStats:g.handStats??{},playerStats:g.playerStats??{}};
 }

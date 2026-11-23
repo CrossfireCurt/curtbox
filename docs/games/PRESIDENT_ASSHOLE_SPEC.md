@@ -211,3 +211,11 @@ The player-local selection resets on a **new hand**, **stage change**, or **iden
 Normal bot turns now wait a randomized **1.8–3.6 seconds**; out-of-turn bot Social reactions wait a longer randomized **2.4–4.8 seconds**, giving the next human player a chance to play or complete a Social first. If another accepted play replaces the pending Social opportunity, the old bot action is invalidated and cannot fire. For very short host turn timers the bot's normal-turn wait is capped to leave approximately 450 ms for the authoritative timeout handler.
 
 The RNG is injectable for deterministic engine tests and sampled only when scheduling a new task. The selected server deadline is persisted as `botActionAt`; reconnects, snapshots and restarts do not re-roll it. Bot actions still run through the same server validations and locked transaction as human actions. Playtest these windows with real phones and TV before refining ranges.
+
+## Named-rank ready screen and player statistics (issue #8)
+
+The **Ready for another hand** view on both the public presenter and player phones shows each finisher with their **named rank** (President, Vice President, Citizen, Secretary, Janitor/Asshole according to the selected mode and player count), *not* numeric place. Entries for participants who have since left remain in the completed hand results, with a "Left table" label. Players who joined too late to finish the hand are shown separately as **Unranked — Joining next hand**. Bots are clearly marked.
+
+Each result shows **last-hand** Cards played, Piles cleared, Socials, 2s played and Passes, and **all-time** Presidencies and Best streak. The counters are persisted in authoritative room state as optional `PAState.handStats` (reset on each deal) and `PAState.playerStats` (cumulative); absent legacy counters default to zero for compatibility. A card play, pile archive, Social success, 2 played or accepted Pass updates both. A pile clear is counted once for the player who actually cleared the pile, including on end-of-hand archiving. The board/phone consumes sanitized public counters without receiving hidden cards. New hand resets per-hand counters, not cumulative totals.
+
+Tests cover counted events, hand rollover, player history after departure, bots and public snapshot privacy. Physical phone and TV visual checks remain recommended.

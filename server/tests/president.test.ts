@@ -499,3 +499,49 @@ test('bot Social waits and cancels if human next player acts before deadline',()
  assert.notEqual(g.lastClear?.reason,'Social');
  assert.ok(g.hands[bot].includes('7D'));
 });
+
+test('server-owned result counters track Social, special clears, cards, passes and persist across hands',()=>{
+ const r=fixture();r.paSettings!.social=true;for(let i=1;i<=4;i++)readyPA(r,`p${i}`,true,1000);
+ const g=r.pa!;g.turn='p1';g.pile=[];g.pilePlays=[];
+ g.lastClear={by:'p1',cards:[],reason:'fixture',at:0,serial:0};
+ g.hands.p1=['7C','9C','KC'];g.hands.p2=['7D','7H','7S','2C','KD'];
+ g.hands.p3=['5D','QD'];g.hands.p4=['8C','AH'];
+ playPA(r,'p1',['7C'],1100);
+ playPA(r,'p2',['7D','7H','7S'],1101,true);
+ assert.equal(g.handStats?.p1?.cardsPlayed,1);
+ assert.equal(g.handStats?.p2?.cardsPlayed,3);
+ assert.equal(g.handStats?.p2?.socials,1);
+ assert.equal(g.handStats?.p2?.pilesCleared,1);
+ assert.equal(g.playerStats?.p2?.pilesCleared,1);
+ playPA(r,'p2',['2C'],1102);
+ assert.equal(g.handStats?.p2?.twosPlayed,1);
+ assert.equal(g.handStats?.p2?.pilesCleared,2);
+ g.turn='p3';g.hands.p3=['5D','QD'];
+ // Seed an active pile for an accepted manual pass.
+ g.pile=['9H'];g.pileOwner='p1';g.pileRank=6;g.lastPlay={player:'p1',rank:6,count:1,cards:['9H'],serial:++g.serial};
+ passPA(r,'p3',1103);
+ assert.equal(g.handStats?.p3?.passes,1);
+ assert.equal(g.playerStats?.p2?.cardsPlayed,4);
+ // Finish with an archived last pile; preserve completed hand stats for ready screen.
+ g.finished=['p1','p2','p3'];g.turn='p4';g.hands.p4=['8C'];g.pile=[];g.pilePlays=[];g.lastPlay=undefined;
+ playPA(r,'p4',['8C'],1200);
+ assert.equal(g.stage,'ready');
+ const host=publicPA(r,{id:'host',role:'host'} as Participant)!;
+ const phone=publicPA(r,r.participants[0])!;
+ assert.equal(host.handStats.p2.socials,1);
+ assert.equal(phone.handStats.p2.twosPlayed,1);
+ assert.equal(host.handStats.p4.cardsPlayed,1);
+ assert.equal(host.handRanks.length,4);
+ assert.equal(host.myHand,undefined);
+ assert.equal(phone.pile,undefined);
+ // A player may leave after the hand; results and recorded stats survive.
+ r.participants=r.participants.filter(x=>x.id!=='p2');
+ assert.ok(publicPA(r,{id:'host',role:'host'} as Participant)?.handRanks.some(p=>p.id==='p2'));
+ assert.equal(g.playerStats?.p2?.socials,1);
+ // New hand can start with remaining players and an additional bot.
+ configurePA(r,{botCount:1});
+ for(const p of r.participants)readyPA(r,p.id,true,1400);
+ assert.equal(g.handNumber,2);
+ assert.equal(g.handStats?.p2,undefined,'new hand counters reset');
+ assert.equal(g.playerStats?.p2?.socials,1,'all-time counters survive');
+});
