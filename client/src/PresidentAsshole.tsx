@@ -3,6 +3,7 @@ import {ConnectionName} from './ConnectionName';
 import {usePresidentSounds,usePresidentMusic} from './presidentAudio';
 import {toggleCardSelection,availableCardSelection,presidentPlayButtonMode} from './presidentSelection';
 import {playableCardRanks,validPresidentSelection} from './presidentCardLegality';
+import {presentPile} from './presentPile';
 import type {RoomView} from '../../shared/types';
 import type {PACard,PADecreeAction,PADecreeKey,PASettings,PAPublic,PAPlayerStats} from '../../shared/president';
 import {PA_DECREE_NAMES} from '../../shared/president';
@@ -110,8 +111,8 @@ export function PresidentAsshole({view,now,offset,onAction}:Props){
  const activeCount=game.seats.filter(x=>x.online).length;
  const rankCount=game.previousRanks.length;
  const roomCode=view.code;
- const pileGroups=[...(game.pilePlays??[])].reverse(); // newest play first
- const pileType=({1:'Single',2:'Pair',3:'Triple',4:'Four-of-a-kind'} as Record<number,string>)[pileGroups[0]?.cards.length??0]??'New lead';
+ // A single compact pile fan replaces play-by-play panels.
+ const pileView=presentPile(game.pile??[],game.pilePlays??[]);
  const clearedHistory=[...(game.pileHistory??[])].reverse();
  // Between-hand results temporarily replace (rather than sit below) the table.
  // The server's ready/ended stage controls this transition, not a client timer.
@@ -163,9 +164,14 @@ export function PresidentAsshole({view,now,offset,onAction}:Props){
      </div>;
     })}
    </div>
-   <div className="pa-table-center"><div className="section-kicker">{game.stage==='play'?'CURRENT PILE':game.stage==='exchange'?'WAITING ON EXCHANGES':game.stage==='ready'?`${activeCount} / 8 PLAYERS`:'PRESIDENTIAL SESSION'}</div>
-    {game.stage==='play'?<><div className="pa-pile-type" role="status" aria-live="polite"><span>CURRENT COMBINATION</span><strong>{pileType.toUpperCase()}</strong><small>{pileGroups.length?`${pileGroups[0].cards.length} CARD${pileGroups[0].cards.length===1?'':'S'} PER PLAY`:'NEW LEAD — ANY COMBINATION'}</small></div><div className="pa-pile" role="group" aria-label="Current pile, latest play first">
-      {pileGroups.length?pileGroups.map((play,i)=><div className={'pa-play-group'+(i===0?' latest':'')} key={play.serial+'-'+i}><small>{i===0?'LATEST PLAY':'EARLIER PLAY'}{play.by?' · '+(game.names[play.by]??'Player'):''}</small><div className="pa-pile-cards">{play.cards.map(c=><span className={`pa-face ${isRed(c)?'pa-red':''}`} key={c}>{label(c)}</span>)}</div></div>):<div className="pa-pile-empty">Empty pile · new lead</div>}
+   <div className="pa-table-center"><div className="section-kicker pa-pile-heading" aria-live="polite">{game.stage==='play'?pileView.heading:game.stage==='exchange'?'WAITING ON EXCHANGES':game.stage==='ready'?`${activeCount} / 8 PLAYERS`:'PRESIDENTIAL SESSION'}</div>
+    {game.stage==='play'?<><div className="pa-pile" role="group" aria-label="Current pile — stacked cards, latest play highlighted">
+      {pileView.cards.length?<div className="pa-pile-fan">
+       {pileView.hiddenCount>0&&<span className="pa-pile-buried" aria-label={`${pileView.hiddenCount} older cards beneath the pile`}>+${pileView.hiddenCount} below</span>}
+       {pileView.cards.map(({card,latest},i)=><span className={'pa-stack-card'+(latest?' latest':'')+(isRed(card)?' pa-red':'')} key={card+'-'+i} role="img" aria-label={`${label(card)}${latest?', latest play':''}`} title={label(card)} style={{zIndex:i+1,transform:`rotate(${(i%5-2)*1.8}deg)`}}>
+        <span className="pa-stack-index"><b>{card.slice(0,-1)}</b><span>{suit(card)}</span></span><span className="pa-stack-pip" aria-hidden="true">{suit(card)}</span>
+       </span>)}
+      </div>:<div className="pa-pile-empty">Empty pile · new lead</div>}
     </div><div className="pa-caption">{game.currentPlayerId?`${game.seats.find(p=>p.id===game.currentPlayerId)?.name??'Player'}'s turn`:''}</div>{recentClear&&<div key={recentClear.serial} className="pa-clear-notice">{recentClear.reason} — pile cleared</div>}</>:<p className="pa-wait-message">{game.event??'Waiting for players'}</p>}
    </div></div>
   </div><aside className="pa-aside"><div className="panel"><div className="section-kicker">ROOM CODE</div><h2>{roomCode}</h2><p>Join on your phone to play. {s.botCount>0?`${s.botCount} bot${s.botCount===1?'':'s'} at this table.`:''}</p></div><div className="panel pa-pile-history"><div className="section-kicker">PILE HISTORY</div><h3>Cleared this hand</h3>{clearedHistory.length?<ol className="pa-history-list">{clearedHistory.map(entry=><li key={entry.serial}><strong>{game.names[entry.by]??'Player'} cleared</strong><small>{entry.reason} · {entry.cards.length} cards</small><div className="pa-history-cards">{entry.cards.map((c,i)=><span className={`pa-history-card ${isRed(c)?'pa-red':''}`} key={c+'-'+i}>{label(c)}</span>)}</div></li>)}</ol>:<p className="helper">No piles cleared yet.</p>}</div><div className="panel"><h3>Presidencies</h3>{scoreboard.length?scoreboard.map(([id,n])=><div className="pa-score" key={id}><span><ConnectionName name={game.names[id]??id.slice(0,6)} offline={game.seats.some(s=>s.id===id&&!s.online)} bot={game.seats.some(s=>s.id===id&&s.bot)}/></span><strong>{n}</strong></div>):<p>Scores appear after the first hand.</p>}</div><div className="panel"><h3>Active decrees</h3>{game.activeDecrees.length?game.activeDecrees.map(d=><div className="pa-decree" key={d.key}>{PA_DECREE_NAMES[d.key]} {d.value??''}{d.expiresBefore!==undefined?<small>expires before hand {d.expiresBefore}</small>:null}</div>):<p>No decrees in effect.</p>}</div></aside></div>}

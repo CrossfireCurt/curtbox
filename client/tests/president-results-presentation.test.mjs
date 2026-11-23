@@ -16,7 +16,7 @@ test('ready after a hand and finished game replaces table with full Last hand',(
 });
 test('first lobby and active play still show the ordinary circular table',()=>{
  assert.match(ui,/game\.handRanks\.length>0/);
- assert.match(ui,/game\.stage==='play'\?<><div className="pa-pile-type"/);
+ assert.match(ui,/game\.stage==='play'\?<><div className="pa-pile"/);
  assert.match(ui,/className="pa-table-ring"/);
 });
 test('completed-hand results are responsive and not cramped into the table sidebar',()=>{
