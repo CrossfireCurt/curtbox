@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createPA,configurePA,botDelayPA,botDuePA,repairPAController,readyPA,playPA,passPA,exchangePA,decreePA,votePA,advancePA,departPA,publicPA} from '../src/president.js';
+import {createPA,configurePA,botDelayPA,botDuePA,repairPAController,readyPA,playPA,passPA,exchangePA,decreePA,votePA,advancePA,departPA,publicPA,endPA} from '../src/president.js';
 import type {RoomState,Participant} from '../../shared/types.js';
 import {createParticipant} from '../src/core.js';
 
@@ -755,4 +755,44 @@ test('Social in President mode also sends minimal visual cheer to phones, withou
  assert.equal(phone.mySocialEvent?.serial,g.lastClear?.serial);
  assert.equal(phone.lastClear,undefined,'phone never sees the cleared cards');
  assert.equal(phone.myDrinkEvent,undefined,'President mode cheer does not request drinking');
+});
+
+test('End Game runs a synchronized ascending finale and holds finished rankings for 10 seconds',()=>{
+ const r=fixture(),g=r.pa!;
+ r.primaryId='p1';r.status='playing';
+ g.stage='ready';g.handNumber=3;
+ g.handRanks=[1,2,3,4].map(i=>({id:`p${i}`,name:`Player ${i}`,position:i}));
+ g.previousRanks=[...g.handRanks];
+ r.participants=r.participants.filter(p=>p.id!=='p4');
+ const startedAt=5000;
+ endPA(r,'p1',startedAt);
+ const expectedEnd=startedAt+1800+4*800+10000;
+ assert.equal(g.stage,'finale');
+ assert.equal(g.finaleStartedAt,startedAt);
+ assert.equal(g.stageEndsAt,expectedEnd);
+ assert.equal(r.status,'playing');
+ assert.equal(publicPA(r,{id:'host',role:'host'} as Participant)?.finaleStartedAt,startedAt);
+ assert.equal(publicPA(r,r.participants[1])?.stageEndsAt,expectedEnd);
+ assert.throws(()=>endPA(r,'p1',startedAt+1),/Finish the current hand first/);
+ advancePA(r,expectedEnd-1);
+ assert.equal(g.stage,'finale');
+ advancePA(r,expectedEnd);
+ assert.equal(g.stage,'ended');
+ assert.equal(r.status,'results');
+ assert.equal(g.stageEndsAt,undefined);
+ assert.equal(g.handRanks.length,4);
+ assert.equal(g.playerStats!==undefined,true);
+ advancePA(r,expectedEnd+5000);
+ assert.equal(g.stage,'ended');
+});
+
+test('Game over finale still requires controller and no four-player active table',()=>{
+ const r=fixture();
+ r.pa!.stage='ready';r.pa!.handNumber=1;
+ r.primaryId='p1';
+ assert.throws(()=>endPA(r,'p2',1000),/Only the Primary Controller/);
+ assert.throws(()=>endPA(r,'p1',1000),/fewer than four players/);
+ r.participants=r.participants.filter(p=>p.id!=='p4');
+ endPA(r,'p1',1000);
+ assert.equal(r.pa!.stage,'finale');
 });
