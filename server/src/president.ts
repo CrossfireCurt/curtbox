@@ -194,7 +194,9 @@ export function playPA(r:RoomState,id:string,cards:PACard[],now=Date.now(),socia
  const g=r.pa!;requirePlayer(r,id);
  if(!g||g.stage!=='play'||!g.active.includes(id)||g.finished.includes(id))throw Error('You are not playing this hand.');
  if(!automatic)ensureUnblocked(g,id);
- const rank=validateCards(g,id,cards),onTurn=g.turn===id;
+ const onTurn=g.turn===id;
+ if(!onTurn&&!social)throw Error('Not your turn.');
+ const rank=validateCards(g,id,cards);
  const run=topRankRun(g.pile);
  const runComplete=!!run&&run.rank===cards[0].slice(0,-1)&&run.count>=1&&run.count<=3&&run.count+cards.length===4;
  const completed=completesFourOfKind(g.pile,cards);
