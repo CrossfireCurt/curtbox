@@ -29,7 +29,7 @@ test('Survey Show host lobby and stage show disconnected state alongside player 
 test('President / Asshole table excludes bots and honors persisted online status',()=>{
  assert.match(pa,/ConnectionName name=\{p\.name\} offline=\{!p\.online\} bot=\{p\.bot\}/);
  assert.match(paTypes,/online:boolean;ready:boolean;bot:boolean/);
- assert.match(types,/online:boolean;score:number;presentation:boolean/);
+ assert.match(types,/online:boolean;\s*score:number;\s*presentation:boolean/);
 });
 test('connection warning is noninteractive and reduced-motion safe',()=>{
  assert.doesNotMatch(component,/<button|onClick/);
