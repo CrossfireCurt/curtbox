@@ -5,7 +5,7 @@ COPY server/package.json server/package.json
 COPY client/package.json client/package.json
 RUN if [ -f package-lock.json ]; then npm ci --no-audit --no-fund; else npm install --no-audit --no-fund; fi
 COPY . .
-RUN npm run audio:social && npm run build
+RUN npm run audio:mixkit && npm run build
 
 FROM node:22-bookworm-slim
 WORKDIR /app
