@@ -116,3 +116,7 @@ To update the running Docker image from the GHCR release **without building**:
 ## Collaborating without ZIP downloads
 
 Source of truth is [CrossfireCurt/curtbox](https://github.com/CrossfireCurt/curtbox). Open the repo in **GitHub Codespaces** (Code → Codespaces → Create codespace), or clone in VS Code and **Reopen in Container**. The `.devcontainer` setup supplies Node 22, PostgreSQL 16 and a generated local-only admin password; run `bash .devcontainer/start.sh` and open the forwarded private port 5173. Follow [`docs/DEVELOPMENT_WORKFLOW.md`](docs/DEVELOPMENT_WORKFLOW.md). For AI changes, prefer feature branches + PRs + GitHub Actions checks, not replacing source archives.
+
+## Android TV presenter
+
+The optional **Curtbox TV** Android application is in `android-tv/`. It lets Google TV / Android TV and compatible Fire TV devices connect to a host-configured Curtbox server URL, create rooms and display the public presentation. It uses the existing hosted React UI; no game server is bundled in the APK. TV remote D-pad navigation is enabled only inside the TV WebView client. See [`docs/ANDROID_TV.md`](docs/ANDROID_TV.md) for sideloading and build instructions. An [Android TV APK GitHub Actions workflow](https://github.com/CrossfireCurt/curtbox/actions/workflows/android-tv.yml) publishes debug APK artifacts for testing; a version tag also attaches a debug APK. Physical-device QA is still required.

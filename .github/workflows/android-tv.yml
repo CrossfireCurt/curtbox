@@ -1,0 +1,55 @@
+name: Android TV APK
+
+on:
+  pull_request:
+    paths:
+      - 'android-tv/**'
+      - 'client/src/tvNavigation.ts'
+      - 'client/src/App.tsx'
+      - 'client/src/styles.css'
+      - '.github/workflows/android-tv.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'android-tv/**'
+      - 'client/src/tvNavigation.ts'
+      - 'client/src/App.tsx'
+      - 'client/src/styles.css'
+      - '.github/workflows/android-tv.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-apk:
+    name: Build Android TV sideload APK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v4
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Build debug APK
+        working-directory: android-tv
+        run: gradle :app:assembleDebug --no-daemon --stacktrace
+      - name: Verify APK exists and generate checksum
+        run: |
+          test -s android-tv/app/build/outputs/apk/debug/app-debug.apk
+          cd android-tv/app/build/outputs/apk/debug
+          sha256sum app-debug.apk > SHA256SUMS.txt
+      - uses: actions/upload-artifact@v7
+        with:
+          name: curtbox-tv-sideload-${{ github.sha }}
+          path: |
+            android-tv/app/build/outputs/apk/debug/app-debug.apk
+            android-tv/app/build/outputs/apk/debug/SHA256SUMS.txt
+          retention-days: 30
+          if-no-files-found: error

@@ -92,9 +92,40 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+  tv-apk:
+    name: Build Android TV sideload APK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v4
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Build TV APK
+        working-directory: android-tv
+        run: gradle :app:assembleDebug --no-daemon
+      - name: Name APK for release and generate checksum
+        shell: bash
+        run: |
+          mkdir -p tv-release
+          cp android-tv/app/build/outputs/apk/debug/app-debug.apk "tv-release/curtbox-tv-${GITHUB_REF_NAME}-debug.apk"
+          (cd tv-release && sha256sum *.apk > SHA256SUMS-tv.txt)
+      - uses: actions/upload-artifact@v7
+        with:
+          name: curtbox-tv-${{ github.ref_name }}
+          path: tv-release/
+          if-no-files-found: error
+          retention-days: 30
+
   github-release:
     name: Publish GitHub Release assets
-    needs: [build, image]
+    needs: [build, image, tv-apk]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -102,6 +133,11 @@ jobs:
       - uses: actions/download-artifact@v7
         with:
           name: curtbox-release-${{ github.ref_name }}
+          path: release
+      - name: Download Android TV APK
+        uses: actions/download-artifact@v7
+        with:
+          name: curtbox-tv-${{ github.ref_name }}
           path: release
       - name: Create GitHub Release
         env:
@@ -111,8 +147,8 @@ jobs:
         shell: bash
         run: |
           shopt -s nullglob
-          files=(release/*.tar.gz release/SHA256SUMS.txt)
-          if (( ${#files[@]} < 2 )); then
+          files=(release/*.tar.gz release/*.apk release/SHA256SUMS.txt release/SHA256SUMS-tv.txt)
+          if (( ${#files[@]} < 4 )); then
             echo 'Missing release assets' >&2
             exit 1
           fi
