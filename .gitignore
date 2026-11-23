@@ -1,0 +1,21 @@
+node_modules
+.env
+.env.*
+!.env.example
+server/dist
+server/public
+client/dist
+.testbuild
+*.log
+.DS_Store
+
+# Manually downloaded raw third-party reaction sound recordings.
+assets/reaction-raw/*
+!assets/reaction-raw/README.txt
+
+# Media downloaded by the optional audio fetch script (generated assets are separately curated)
+client/public/audio/music/
+client/public/audio/sfx/cue-*.ogg
+
+# Local GitHub release output
+release/

@@ -1,0 +1,16 @@
+node_modules
+**/node_modules
+.git
+.env
+.env.*
+!.env.example
+server/dist
+server/public
+client/dist
+.testbuild
+*.log
+.DS_Store
+assets/reaction-raw
+
+release
+.github

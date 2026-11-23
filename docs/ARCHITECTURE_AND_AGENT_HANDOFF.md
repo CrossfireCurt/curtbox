@@ -1,0 +1,216 @@
+# Curtbox — engineering architecture, implementation inventory and agent handoff
+
+**Revised November 23, 2026.** This is the practical companion to `PLATFORM_SPEC.md` and the two game specs in `games/`. It describes the modified source archive as delivered, not a hypothetical future architecture.
+
+## 1. What is shipped in this source package
+
+Curtbox has two independently selectable games in one React + Socket.IO/Express + PostgreSQL application:
+
+**Survey Show:** existing mature prototype, staged guessing, predictions, three finales, score/reveal sequencing, source-backed question bank, admin console, reactions/audio and room-based Host/Player separation. It has not been rewritten; existing core game code is preserved.
+
+**President / Asshole:** new separate game module and UI, lobby and automatic all-ready deal, 52-card distribution, ranking and succession, turn-based single/pair/triple/four-of-a-kind plays, 2/equal/four-kind/Double Trouble clears, optional Social, explicit pass and automatic timeout action, Card Exchange levels, Presidential Decrees, Democracy vote, Term Limits exact-hand expiration, drinking notices, host room settings, per-socket private hands, public card-table presentation, cumulative Presidency/streak scoring, joins/leaves and configurable grace. This is an **integrated first development pass**, not a production-certified or browser-tested release.
+
+**Status summary:** 30 President / Asshole and 15 Survey Show pure-engine tests, plus 20 client static/route checks, passed using the dependency-light runner (65 total). Production `npm install`, `npm run check`, `npm test` with tsx, `npm run build`, Docker/Postgres startup and multi-device browser E2E **could not be completed in this authoring environment because the npm dependency installation was unavailable**. Do not claim those steps passed.
+
+**Post-release corrective revision (November 23, 2026):** A user-run `npm run build` caught TS18048 in `client/src/PresidentAsshole.tsx` vote presentation. The Democracy UI now captures an immutable `vote` variable and uses that reference in the mapped buttons. The optional Kenney audio downloader previously treated HTTP-200 HTML as a successful archive request; archive validation and mirror retries now live in `scripts/audio-archive.mjs`. Three network-free regression tests cover this. The standalone end-to-end production build remains unverified in this environment, which cannot reach npm. See `docs/BUILD_TROUBLESHOOTING.md`.
+
+## 2. File map
+
+```
+curtbox/
+  AGENTS.md                    # read-first coding-agent directions
+  README.md                    # installation, status, links to docs
+  shared/types.ts              # shared Curtbox and Survey Show types; RoomState now contains pa/paSettings
+  shared/president.ts          # President / Asshole contract, settings, decree keys, public snapshots
+  server/src/index.ts          # Express/Socket.IO, transactional DB, room routes, event authorization, timers
+  server/src/core.ts           # Survey Show rules/rooms, its personalized view and status machine
+  server/src/president.ts      # President / Asshole authoritative pure-ish state machine
+  server/src/seed.ts           # Survey Show published seed questions
+  server/src/cultureSeed.ts
+  server/src/expandedCultureSeed.ts
+  server/tests/core.test.ts    # existing Survey Show tests
+  server/tests/president.test.ts # 18 new President / Asshole tests
+  client/src/App.tsx           # common catalog/role/room flow; routes to game-specific presentations
+  client/src/PresidentAsshole.tsx # new Host/Player game interface and host rule editor
+  client/src/styles.css        # existing styles plus new pa-* styling
+  client/src/audio.ts          # Survey Show phase soundtrack + reaction playback
+  scripts/fetch-audio.mjs      # Optional downloader; mirrors checked for valid ZIP
+  scripts/audio-archive.mjs    # Download verification/retry helper
+  scripts/test-audio-archive.mjs # Network-free audio regression tests
+  docs/BUILD_TROUBLESHOOTING.md
+  docs/PLATFORM_SPEC.md
+  docs/games/SURVEY_SHOW_SPEC.md
+  docs/games/PRESIDENT_ASSHOLE_SPEC.md
+  docs/ARCHITECTURE_AND_AGENT_HANDOFF.md
+  docs/DECISION_LOG.md
+  docs/archive/DECISIONS_AND_IMPLEMENTATION_PLAN_2026-11-20.md
+```
+
+## 3. Platform state and transactions
+
+`RoomState` in `shared/types.ts` includes a game discriminator `gameId: 'survey-show' | 'president-asshole'`, shared `status`, settings/participants/controller, optional Survey Show `game`, and optional President / Asshole `paSettings` and `pa`. The complete room is stored in Postgres as JSONB and updated in a **serializable-by-row-lock** transaction:
+
+1. Client sends Socket.IO intent with acknowledgment callback.
+2. `server/src/index.ts` identifies participant from `socket.data.roomCode` and `socket.data.participantId` (never trust a client-provided participant ID).
+3. `mutate(code, fn)` obtains `SELECT data FROM rooms WHERE code=$1 FOR UPDATE` inside `BEGIN`.
+4. Module rules validate stage, role, turn, deadline, cards or proposals. Transition mutates room state only if action is valid; otherwise transaction rolls back.
+5. Server updates JSONB, commits, then calls `syncRoom(code)`.
+6. Server builds **individual** `room:view` for every socket: `makeView(room, me)` for Survey Show/base, supplemented by `publicPA(room, me)` for President / Asshole.
+
+**Warning:** Never serialize `room.pa` directly to any client: it includes **every Player's hand**, original card-exchange allocations, full votes and other private data. `publicPA` excludes hidden hands and the pile from Player views and excludes all private hand cards from Host views. Expand the privacy tests whenever adding fields.
+
+For Survey Show, `makeView` reveals guesses, predictions, actual/source only during designated phases. Scores commit after reveals, not during them.
+
+## 4. Socket.IO API
+
+Shared:
+
+- `room:create` payload `{gameId: 'survey-show'|'president-asshole'}`; role must be Host; generated room code, token, id in acknowledgment.
+- `room:join` payload `{code, role, name?, token?}`; reconnect is automatic if token matches.
+- `room:openLobby` — creating Host only.
+- `room:requestPresentation` — queue guest Host display.
+- `room:avatar` — Player avatar selection (Survey Show lobby).
+- `room:leave` — immediate departure; creating Host closes the room.
+- `room:react` — validated and rate-limited reaction.
+- `room:view` — server emission of personalized snapshot; `room:closed` — room closed/expired.
+- `GET /api/rooms/:code` — room game/status/player count used by direct link flow.
+
+Survey Show-specific:
+
+- `room:settings` — rating, pace, finale, creator only and before match.
+- `room:start`, `room:cancel` — 15-second countdown controlled by Primary Controller.
+- `game:guess` — percentage slider preview only.
+- `game:guessSubmit` — explicit revisable valid percentage guess.
+- `game:predict` — one-tap prediction.
+- `game:finale` — ordered/selected finale choices/preview.
+- `game:finaleSubmit` — explicit percentage submission for Showdown.
+- `game:skip` and `game:lobby` — Controller-only reveal skip / return.
+
+President / Asshole-specific:
+
+- `president:settings` — creator setup only; partial `PASettings`.
+- `president:ready` — `{ready:boolean}` Player ready/unready.
+- `president:play` — `{cards: PACard[], social?: boolean}`; server checks ownership, rank count, turn and Social window.
+- `president:pass` — current Player; automatic timeout pass runs on server, not through this event.
+- `president:exchange` — `{cards:PACard[]}` by higher-ranked partner, from original dealt hand only.
+- `president:decree` — `{action:PADecreeAction}`, or `{nominees:PADecreeAction[]}`, or `{}` to skip.
+- `president:vote` — `{index:number}` vote or President tie-break.
+- `president:ack` — dismiss local drinking prompt.
+- `president:end` — Primary Controller ends table between hands if fewer than four active Players remain.
+
+All actions return an acknowledgment `{ok:boolean,error?:string,...}`; ignore client-authoritative clocks. The browser uses its estimated server offset only to display remaining time.
+
+## 5. President / Asshole state machine (details)
+
+`PAState` lives in `RoomState.pa`:
+
+| Stage | Entered by | Valid actions | Exit |
+|---|---|---|---|
+| `ready` | room initialized, or hand/decree finished | Players toggle ready; optional Controller End Game | >=4 joined online and all ready, then pre-hand expirations/deal |
+| `exchange` | a new hand with ranked exchange obligations | ranked upper returns original cards | all responses or timeout fallback |
+| `play` | deal/exchange completed | legal Play, Pass, eligible Social; automatic lead/pass | all but one rank determined |
+| `decree` | winning President's consecutive streak reached threshold | enact/repeal/modification, Democracy proposals, Skip | one decision, timeout, or President forfeiture |
+| `vote` | Democracy multi-option proposal | each eligible Player votes; President resolves ties | winner enacted or tied winner randomly resolved if President gone/timeout |
+| `ended` | Controller chooses End Game below four | no game actions | create another room |
+
+`PAState.handNumber` counts fully dealt hands; `PADecree.expiresBefore` denotes the first hand for which the decree **is inactive**. After hand 5, a 3-round decree starting hand 6 gets `expiresBefore=9`. `beginHand` calls `processExpiration` **before dealing**. Term Limits repeal or self-expiration does not clear any other decree's `expiresBefore` field.
+
+**Card strings:** `4C` = four of clubs, `10H` = ten of hearts, `AS` = ace of spades. `RANKS=['3','4','5','6','7','8','9','10','J','Q','K','A','2']` and suits `[C,D,H,S]`. Suits have no ranking. `hands` is `Record<id, PACard[]>`. `pile` is public only to Hosts; `lastPlay` tracks the most recent successful card group for Play/Pass/Social; `finished` records first-to-last finishing order; `active` represents hand participants even if some have finished. `serial` and `lastClear` support clear cues and collision ordering. `decrees` is a keyed array with optional level/value and expiration. `vote` holds chosen nominees and private votes. `drinking[id]` stores local pending notices.
+
+**Timers:** server tick scans persisted rooms and advances due action deadlines; it also handles disconnected grace expiration. Room snapshots, not React timers, own transitions. Test delayed ticks and process restarts to avoid skipped phases, duplicate decrees or score increments.
+
+## 6. Design and code decisions not to undo
+
+- Survey Show and President / Asshole have separate gameplay components and state, with only shared room identity, persistence, catalog and transport. A future refactor can extract a formal game plugin interface; **don't** intermingle rules in one game core.
+- Pile exists exclusively on public Host display for President / Asshole. Player gets private hand and optional Social selection requirement, not actual pile arrays.
+- No host+player combined role, no Player interface with full TV stage, no AI voice features.
+- Card Exchange counts one decree slot, never two; levels advance only one notch.
+- Existing Term Limits expiry assignments continue after Term Limits itself ends; future decrees permanent unless re-enacted.
+- Democracy never makes more than one change per opportunity.
+- Lowering Max Active Decrees never forces immediate repeals.
+- Explicit Submit governs Survey Show percentage submissions and full-timer progression; stale older handoff says otherwise.
+
+## 7. Running and verification
+
+Requires Node.js 22+, npm, PostgreSQL 16. `.env.example` defines required env variables. Production setup example:
+
+```bash
+npm install
+cp .env.example .env
+npm run password-hash -- 'YOUR-UNIQUE-ADMIN-PASSWORD'
+# Set ADMIN_PASSWORD_HASH, SESSION_SECRET (openssl rand -hex 32), POSTGRES_PASSWORD in .env
+npm run check
+npm test
+npm run build
+docker compose up --build -d
+```
+
+**2026-11-23 authoring run:** `npm install` did not complete due inaccessible dependency registry; `npm test` failed immediately because `tsx` was unavailable; `npm run check` failed immediately because `@types/node` wasn't in the local project. These are dependency-environment failures, not evidence that compilation succeeded. The engine-only isolated type-check against a globally available `@types/node` passed. TypeScript transpilation syntax checks on the new server/frontend modules were clean. Eighteen President / Asshole and fifteen Survey Show pure-engine tests plus twenty client static checks passed after TypeScript→JS transpilation using a globally installed TypeScript module; client static/route tests were run under Node with `--experimental-strip-types`. Run `npm run test:pure` to reproduce all **53** dependency-light checks. This is **not a complete build or end-to-end test**.
+
+### Reproduce available local tests
+
+```sh
+npm run test:pure                # 15 Survey Show + 30 President / Asshole + 20 client checks (65)
+npm run test:president:pure      # 30 President / Asshole rules-only checks
+```
+
+These do not start a browser, Socket.IO server or Postgres. Full `npm test`, `npm run check`, `npm run build`, and Docker integration remain necessary.
+
+### Essential browser/Postgres acceptance path
+
+1. Start a fresh room for **Survey Show**; ensure current explicit percentage Submit/full timer and all regular/finale scoring still work. Test reconnect and QR, separate host/player, reactions and admin.
+2. Create a **President / Asshole** room; from four phone/browser sessions join the generated code, use Host rule settings, open lobby, ready each. Confirm exactly 52 unique cards assigned privately and host can see no private cards. Confirm first hand 4♣ mandatory.
+3. Play singles/pairs/triples/four-kind, 2, same-rank, passes, clear ownership and next lead. Test out-of-turn Social concurrently from two browser sessions, and confirm only one succeeds transactionally.
+4. Complete hand, verify President/VP/Secretary/Janitor or Asshole roles, scores, streak and readiness for next hand. Enable L1/L2 Card Exchange, verify two-way swaps and fallback when timer expires; ensure neither upper partner can return newly received lower's cards.
+5. Earn decree opportunity by consecutive presidencies. Turn on Reverse Deal/Reverse Play and demonstrate independence. Enact Democracy; test tie resolution, abstention, President departure. Set Max Active below active count; verify no forced repeal and no new additions.
+6. Enact Term Limits with N=3 after hand 5, verify active through hands 6/7/8 and expired before hand 9. Repeal Term Limits before that boundary; verify existing other countdowns still run, while new decrees have no expiry. Test self-expiration enabled and disabled.
+7. Set Asshole mode; verify manual Pass = Drink, automatic timeout pass does not drink, 2 = Drink one prompt per other active Player, Require Acknowledgment blocks affected only, timeout doesn't pause the table.
+8. Join a new Player midhand, leave/reconnect, grace-expire one Player, test 3-Player remainder and 4-Player minimum for the next deal. End Game with Primary when under four.
+9. Restart Docker/Node during `exchange`, `play`, `decree` and `vote` deadlines; confirm persisted state and deterministic resumed actions. Test multiple presenters and client reconnection.
+
+## 8. Technical debt / review checklist
+
+**Must address before production:**
+
+- Run complete TypeScript checks and fix compile errors in real dependency environment.
+- Run real Socket.IO/Postgres multi-client browser E2E. Tests currently cover the pure PA engine, not transaction integration or React controls.
+- Add detailed duplicate-event/idempotency, simultaneous Social (transaction order), late vote, timeout, disconnect, startup catch-up and deck conservation tests.
+- Review room authorization boundaries: ensure Survey Show-specific actions cannot be called on President / Asshole rooms and vice versa; validate game IDs everywhere.
+- Add transactional tests for `room:join`, reconnect token handling, participant removal and controller succession; explicit migrations may eventually replace JSONB prototype.
+- Accessibility: keyboard/touch card selection, screen-reader labeling, focus management, color contrast, turn/clear animation with reduced motion, narrow devices and font scaling.
+- Improve TV card pile presentation: stronger clear animations, rank captions, clearly highlighted winner, more persistent join QR in lobby, clear reveal of finishing order, leaderboard shared placement rendering.
+- Build robust utility for pauses/deadlines under reconnection, with host-configurable timers and safe server restart catch-up.
+- Clarify the fate of historically proposed additional decrees (Dictatorship / Executive Order / Presidential Authority / Ranked Authority / Board Meeting) with original finalized decisions before implementing them.
+- Survey Show production security, licensing/provenance, realistic browser media permissions and full question audit remain unfinished.
+
+**Do not silently invent remaining decisions:** If the code differs from the specs in `games/`, record the mismatch, add a test, then fix. If the historical rule is missing or ambiguous, label it `Needs verification` and avoid implementing unreviewed decrees.
+
+## November 23 follow-up: President / Asshole bots (integrated, testing caveats)
+
+Implementation entry points:
+
+- `shared/president.ts`: `PASettings.botCount` (0–7), `PABot`, `PAState.bots`, `botActionKey`, `botActionAt`, `PAPublic.seats[].bot`.
+- `server/src/president.ts`: `configurePA` adds/removes stable virtual bots; `current()` merges human room Participants with virtual bot descriptors; `maybeStart` requires ≥4 seats including ≥1 human and waits only for human readiness. `botTask`, `botDuePA`, `botPlay`, `botDecreeChoices`, and `advancePA` run bot turns, Social, votes, tie breaks and decrees through the same public game rules.
+- `server/src/core.ts`: rejects new human join if human+bot cap of 8 would be exceeded, excludes collisions with bot display names.
+- `server/src/index.ts`: room info reports combined counts; 350ms server tick schedules and advances bot actions inside serialized Postgres room transactions.
+- `client/src/PresidentAsshole.tsx`: host `botCount` setting, public `BOT` label, automatic-ready explanation.
+- `server/tests/president.test.ts`: engine tests for bot seats, full hand, controller exclusion, gameplay, exchanges, Social and voting.
+
+State ownership / security: bots are persisted virtual seats only, **not Socket.IO clients and not `room.participants`**. Never let a bot hold a token, creator role, presentation authority, Primary Controller role, or drinking acknowledgment gate. Public views must not disclose bot private hands. Room lifetime is driven by real connected participants; bots should not keep an abandoned room online. If bot difficulty or personalization is added, use an explicit, host-controlled setting and preserve the pure rules engine.
+
+**Validation limitations:** Complete build (`npm run check`, `npm run build`) and Docker/Postgres/real phone-browser E2E remain unverified here because dependencies are not installed and npm registry is unavailable. Dependency-light engine and static checks are green. A previous TS18048 issue was fixed separately; do not assume absence of additional full-build errors. Test a 1-human+3-bot room, 4 humans + 4 bots, a full multi-hand session, a bot President, a bot with mandatory exchange, room restart during a bot turn, and human leave/reconnect during active play.
+
+**Queued user requests:** 1) GitHub CI/release/GHCR and Docker pull/update configuration is now added in source, though remote GitHub and Docker testing remain; 2) collaborative ongoing iteration using Virtual Code or equivalent to avoid repeated ZIP rebuilds; 3) Android TV host/presenter APK with configurable Curtbox server URL; 4) disconnected-player icon in public presenter views on every game, absent for bots. Do not claim (2)–(4) have been implemented.
+
+
+## GitHub Actions, release and GHCR Docker rollout (source added 2026-11-23)
+
+- `.github/workflows/ci.yml`: Node 22 checks on pushes/PRs; built-app workflow artifact; successful `main` publishes an amd64 GHCR image tagged `:main`.
+- `.github/workflows/release.yml`: release tag `vX.Y.Z` tests/builds again, packages `curtbox-vX.Y.Z-app.tar.gz` + SHA256SUMS, pushes `:vX.Y.Z` (and `:latest` on stable tags), then creates a GitHub Release. No automatic version bump.
+- `scripts/package-release.sh`: bundle compiled Node/React app with docs, manifests and checksums without secrets. `Dockerfile` uses `npm ci` if a lockfile exists.
+- `compose.ghcr.yml` / `scripts/update-from-ghcr.sh`: replaces local Docker `build` with registry `image`, reuses the original app/db service names and `party_db` volume; `CURTBOX_IMAGE` is provided in the deployment machine's `.env`.
+- `docs/GITHUB_RELEASE_AND_DOCKER.md`: complete one-time `gh repo create`, publishing, private package authentication, version tagging, database backup, upgrade/rollback.
+
+**Important verification gap:** GitHub Actions and Docker have not been exercised against GitHub or GHCR. The original source had no `package-lock.json` and npm registry remains inaccessible locally. User must generate+commit `package-lock.json` on a networked machine. Validate a pushed main image, a release image, the bundled tarball and a real Compose deployment before relying on the distribution. Pinned SHA actions may be adopted later for stricter supply chain security. Current published image target is linux/amd64.
+
+**Remaining user's queued work (not part of this batch):** collaborative Virtual Code workflow, Android TV host APK, presenter disconnect warning icon on both games (not for bots).

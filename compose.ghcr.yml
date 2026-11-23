@@ -1,0 +1,34 @@
+# Pull-only production deployment. Use from the same Curtbox directory as
+# docker-compose.yml so the existing Compose project and party_db volume remain.
+# Set CURTBOX_IMAGE=ghcr.io/<owner>/<repo>:v0.1.0 (or :latest) in .env.
+services:
+  app:
+    image: ${CURTBOX_IMAGE:?Set CURTBOX_IMAGE in .env to a published ghcr.io image}
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://party:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/party
+      ADMIN_PASSWORD_HASH: ${ADMIN_PASSWORD_HASH:?Set ADMIN_PASSWORD_HASH in .env}
+      SESSION_SECRET: ${SESSION_SECRET:?Set SESSION_SECRET in .env}
+      DEMO_MODE: ${DEMO_MODE:-false}
+      PORT: 3000
+    ports:
+      - '127.0.0.1:3000:3000'
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: party
+      POSTGRES_USER: party
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - party_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U party -d party']
+      interval: 3s
+      timeout: 3s
+      retries: 20
+volumes:
+  party_db:

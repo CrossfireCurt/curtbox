@@ -1,0 +1,31 @@
+{
+  "name": "curtbox",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "workspaces": [
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "dev": "concurrently -n SERVER,WEB -c yellow,cyan \"npm run dev -w server\" \"npm run dev -w client\"",
+    "build": "npm run build -w client && npm run build -w server",
+    "check": "npm run check -w server && npm run check -w client",
+    "test": "npm run test -w server",
+    "start": "npm run start -w server",
+    "password-hash": "tsx scripts/hash-password.ts",
+    "audio:fetch": "node scripts/fetch-audio.mjs",
+    "audio:reactions": "node scripts/install-reaction-audio.mjs",
+    "test:president:pure": "node scripts/test-president-pure.mjs",
+    "test:pure": "node scripts/test-core-pure.mjs",
+    "test:audio": "node --test scripts/test-audio-archive.mjs"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.3"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

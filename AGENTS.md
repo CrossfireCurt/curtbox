@@ -1,0 +1,56 @@
+# Curtbox — instructions for coding agents
+
+Read this file first. This repository is a multi-game, self-hosted party-game application. **Curtbox** is the platform; **Survey Show** and **President / Asshole** are separate games. The Nov 23 2026 work adds President / Asshole to the existing Survey Show archive without breaking the first game.
+
+## Authoritative references
+
+- `docs/PLATFORM_SPEC.md` — shared visual identity, rooms, roles, privacy, persistence, security and architecture.
+- `docs/games/SURVEY_SHOW_SPEC.md` — Survey Show current rules, controls, prompts, scoring and presentation.
+- `docs/games/PRESIDENT_ASSHOLE_SPEC.md` — President / Asshole final known rules and decree specifications.
+- `docs/ARCHITECTURE_AND_AGENT_HANDOFF.md` — state machines, event API, files, technical debt and integration checklist.
+- `docs/DECISION_LOG.md` — how to resolve historical contradictions and what remains unverified.
+- `docs/archive/DECISIONS_AND_IMPLEMENTATION_PLAN_2026-11-20.md` — historical Survey Show planning artifact only.
+
+## Non-negotiable conventions
+
+1. Never merge public Host presentation and private Player controls. Hosts cannot inspect players' hidden cards or unrevealed survey answers. Each Player phone shows only the private controls/context needed to play; President / Asshole's actual pile is Host-only.
+2. Server is the authority. Persist every room mutation to Postgres in a row-locked transaction and broadcast personalized `room:view` snapshots after commit. No client-trust shortcuts for card ownership, scoring, countdowns, votes, card exchange, player roles or decrees.
+3. Role is fixed per browser session: Host or Player, never a combined role. A host who also wants to play joins from a separate device/session.
+4. Rooms use random four-letter uppercase codes, joined through `/room/ABCD`, plus browser-stored reconnect token.
+5. No AI announcer, TTS pipeline, cloud dependency during active gameplay, copyrighted branding/artwork/music or guessed survey data. UI: minimalist retro Curtbox shell and Github-like controls.
+6. Preserve Survey Show behavior when modifying shared room/controller/API code. Survey Show's **percentage slider is a preview; only Submit counts**, Submit can be revised, and its timer does not end early. This supersedes the historical Nov 20 handoff.
+7. President / Asshole **Term Limits lasts exactly N complete hands, expiring before hand H+N** when first effective before hand H. Repealing or self-expiring Term Limits does **not** cancel countdowns already assigned to other decrees. New decrees afterward are permanent until new Term Limits applies. This rule was finalized on November 23.
+8. Keep testable game rules in `server/src/president.ts` and core Survey Show logic in `server/src/core.ts`. `server/src/index.ts` should handle transport, identity and persistence, not reproduce card rules.
+
+## State of the delivered source (2026-11-23)
+
+- President / Asshole game tile, room creation, settings, ready-up, dealing, turns, passing, clearing, Social, exchanges, vote/decree flow, timers, drinking prompts, rankings and separate TV/mobile presentations are **implemented in source**.
+- 30 President / Asshole rules-engine, 15 Survey Show core and 20 client static/route tests passed (65 total) using the dependency-light test runner.
+- **Not verified here:** full `npm install`, `npm run check`, `npm test` with normal npm dependencies, Vite + server production builds, browser Socket.IO tests, Postgres persistence with a running database, Docker startup or production security. The environment had no working npm dependency installation; do not claim deployable status.
+- Known areas requiring deeper QA and some UX refinement are listed in `docs/ARCHITECTURE_AND_AGENT_HANDOFF.md` and `docs/DECISION_LOG.md`.
+
+## Build regression note — November 23, 2026
+
+The first released archive failed a real Mac `npm run build` at `client/src/PresidentAsshole.tsx` with `TS18048` (vote possibly undefined inside `.map`). This revision captures `const vote = game?.vote` and uses only that narrowed constant in the Democracy render. Also fixed the Kenney audio downloader accepting HTML as ZIP without trying alternate OpenGameArt source; this is isolated in `scripts/audio-archive.mjs` with 3 regression tests. **The complete npm/Vite/Docker pipeline has not been rerun successfully in this authoring environment (npm registry inaccessible).** Do not claim production build success. See `docs/BUILD_TROUBLESHOOTING.md`.
+
+## First tasks for a new coding agent
+
+1. In a networked Node 22 environment, run `npm install && npm run check && npm test && npm run build`. Fix any errors (particularly typing and runtime integration) before additional features.
+2. Run `docker compose up --build -d` with `.env` from `.env.example` and validate 4-player President / Asshole sessions using one host browser and four phones; simultaneously regression-test Survey Show.
+3. Add Socket.IO/Postgres/browser E2E tests that create a room, join four players, ready, play a hand, exchange next hand, enact Term Limits, vote through Democracy, reconnect, timeout, and finish.
+4. Refine any documented implementation gaps without inventing new gameplay rules; check the latest user decisions first.
+
+## Bots update (November 23, 2026)
+
+President / Asshole has an optional host-configurable number of virtual bot opponents (0–7). Bots are stored in `room.pa.bots`, **never** `room.participants`. Read `docs/games/PRESIDENT_ASSHOLE_SPEC.md` Section 1a and the bots addendum in `docs/ARCHITECTURE_AND_AGENT_HANDOFF.md` before editing. Maintain a total of at most 8 humans+bots, require ≥1 human, auto-ready bots and never grant bot tokens or Primary Controller rights. Automated actions are persisted, serialized server-side and pass through the same game validators. Preserve Survey Show unchanged. Re-run `npm run test:president:pure` and `npm run test:pure` after changing any shared logic.
+
+**User-requested work queue update:** GitHub CI/release/GHCR workflow configuration is now included in source (remote deployment requires user GitHub setup). Remaining: collaborative Virtual Code workflow; configurable-server Android TV host APK; presenter disconnect icons on both games. Do not claim the remaining features are part of this release.
+
+
+## GitHub + GHCR pipelines (November 23, 2026)
+
+The repository includes `.github/workflows/ci.yml` (checks and `:main` image) and `.github/workflows/release.yml` (tag builds, app tarball/checksums, GHCR `:vX.Y.Z` and stable `:latest`); `compose.ghcr.yml` is the no-build deployment file, and `scripts/update-from-ghcr.sh` updates Docker in place. **No GitHub remote/release has been created or tested in the authoring environment.** It lacks npm registry access, so there was no full npm/Vite/Docker production run. Read `docs/GITHUB_RELEASE_AND_DOCKER.md` before changing release or deployment behavior.
+
+IMPORTANT: Original ZIP lacks `package-lock.json`. Have the owner run `npm install` on their networked machine, validate build, and commit the lockfile; CI and Docker switch to `npm ci` automatically. Keep `.env` and database dumps out of Git. Do not change Compose project name or remove the `party_db` named volume when switching from `docker-compose.yml` to `compose.ghcr.yml`. Tags represent releases; main branches publish a development image only after checks pass. Do not pretend the CI config has actually passed in GitHub before it runs there.
+
+**Remaining queued requests, not implemented:** smoother ongoing source collaboration (Virtual Code or another tool), Android TV host APK with configurable server URL, disconnected-player warning icons in both host presentations (never shown for bots).
