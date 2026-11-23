@@ -1,6 +1,7 @@
 import {useCallback,useEffect,useRef,useState} from 'react';
 import type {RoomView} from '../../shared/types';
 import {clampPresidentVolume,readPresidentVolume} from './presidentVolume';
+import {startPresidentAmbient,type AmbientMusic} from './presidentAmbientMusic';
 import {newPresidentSoundCues,presidentSoundCues,type PACueKind} from './presidentSoundEvents';
 
 const prefKey='curtbox.pa.effects';
@@ -108,9 +109,9 @@ export function usePresidentSounds(view:RoomView,now:number,offset:number){
 
 
 /**
- * Presenter background music is independent of gameplay effects.
- * Uses the already self-hosted, licensed Survey Show soundtrack files.
- * Never starts on a player phone.
+ * The presenter prefers an optional downloaded track. If absent, the game
+ * synthesizes a local instrumental loop instead of silently playing nothing.
+ * Never starts any background music on player phones.
  */
 export function usePresidentMusic(view:RoomView){
  const [enabled,setEnabled]=useState(()=>{
@@ -119,39 +120,56 @@ export function usePresidentMusic(view:RoomView){
  const [volume,setVolumeState]=useState(()=>{
   try{return readPresidentVolume(window.localStorage.getItem('curtbox.pa.musicVolume'),.20);}catch{return .20;}
  });
- const volumeRef=useRef(volume);
- volumeRef.current=volume;
+ const volumeRef=useRef(volume);volumeRef.current=volume;
  const active=view.me.role==='host'&&!view.me.hostWaiting;
  const stage=view.pa?.stage;
  const track=stage==='play'?'guess':stage==='exchange'||stage==='decree'||stage==='vote'?'predict':'lobby';
  const audio=useRef<HTMLAudioElement|null>(null);
+ const synth=useRef<AmbientMusic|null>(null);
  const setVolume=useCallback((next:number)=>{
   const normalized=clampPresidentVolume(next);
   setVolumeState(normalized);
   if(audio.current)audio.current.volume=normalized;
+  synth.current?.setVolume(normalized);
   try{window.localStorage.setItem('curtbox.pa.musicVolume',String(normalized));}catch{/* Storage optional. */}
  },[]);
  const toggle=useCallback(()=>{
-  setEnabled(old=>{
-   const next=!old;
-   try{window.localStorage.setItem('curtbox.pa.music',next?'on':'off');}catch{/* Storage optional. */}
-   return next;
-  });
- },[]);
+  const next=!enabled;
+  // Starting a real AudioContext directly inside the click/TV remote action
+  // unlocks synthesized music even if media later reports 404 asynchronously.
+  if(next&&active&&!synth.current)synth.current=startPresidentAmbient(track,volumeRef.current);
+  setEnabled(next);
+  try{window.localStorage.setItem('curtbox.pa.music',next?'on':'off');}catch{/* Storage optional. */}
+ },[enabled,active,track]);
  useEffect(()=>{
   if(!active||!enabled)return;
   const music=new Audio(`/audio/music/${track}.ogg`);
   music.loop=true;music.preload='auto';music.volume=volumeRef.current;
   audio.current=music;
-  const unlock=()=>{if(audio.current===music)void music.play().catch(()=>{});};
+  const onPlaying=()=>{synth.current?.stop();synth.current=null;};
+  const onError=()=>{
+   if(audio.current!==music)return;
+   if(!synth.current)synth.current=startPresidentAmbient(track,volumeRef.current);
+   void synth.current?.resume();
+  };
+  music.addEventListener('playing',onPlaying);
+  music.addEventListener('error',onError);
+  const unlock=()=>{
+   if(audio.current!==music)return;
+   void synth.current?.resume();
+   void music.play().catch(()=>{/* Missing assets use original synthesized loop. */});
+  };
   unlock();
   window.addEventListener('pointerdown',unlock,{capture:true});
   window.addEventListener('keydown',unlock,{capture:true});
   return()=>{
    window.removeEventListener('pointerdown',unlock,{capture:true});
    window.removeEventListener('keydown',unlock,{capture:true});
+   music.removeEventListener('playing',onPlaying);
+   music.removeEventListener('error',onError);
    music.pause();music.removeAttribute('src');music.load();
    if(audio.current===music)audio.current=null;
+   synth.current?.stop();synth.current=null;
   };
  },[active,enabled,track]);
  return {enabled,volume,setVolume,toggle};
