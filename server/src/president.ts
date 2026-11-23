@@ -101,7 +101,7 @@ function beginHand(r:RoomState,now:number){
   for(const id of [...ranked(g,ids)].reverse().slice(0,extra))deficits[id]++;
   while(cards.length){for(const id of dealOrder)if(deficits[id]>0){hands[id].push(cards.pop()!);deficits[id]--;}}
  }else{let n=0;while(cards.length)hands[dealOrder[n++%dealOrder.length]].push(cards.pop()!);}
- g.handNumber=newHand;g.hands=hands;g.active=ids;g.ready=[];g.finished=[];g.handRanks=[];g.passed=[];g.pile=[];g.pileOwner=undefined;g.pileRank=undefined;g.lastPlay=undefined;g.lastClear=undefined;g.lastSkip=undefined;g.lastPass=undefined;g.lastPlayed=undefined;g.pilePlays=[];g.pileHistory=[];g.handStats={};g.serial++;
+ g.handNumber=newHand;g.hands=hands;g.active=ids;g.ready=[];g.finished=[];g.handRanks=[];g.passed=[];g.pile=[];g.pileOwner=undefined;g.pileRank=undefined;g.lastPlay=undefined;g.lastClear=undefined;g.lastSkip=undefined;g.lastPass=undefined;g.lastPlayed=undefined;g.pilePlays=[];g.pileHistory=[];g.handStats={};g.finaleStartedAt=undefined;g.finaleNextStage=undefined;g.serial++;
  const leader=newHand===1?ids.find(id=>hands[id].includes(s.openingCard)):low;
  chooseLead(g,leader);g.turnEndsAt=now+s.turnSeconds*1000;g.stage='play';g.event=`Hand ${newHand} dealt`;
  g.exchange=[];
@@ -188,11 +188,18 @@ function endHand(r:RoomState,now:number){
  if(winner){g.presidencies[winner]=(g.presidencies[winner]??0)+1;g.streaks[winner]=(g.streaks[winner]??0)+1;g.longestStreak[winner]=Math.max(g.longestStreak[winner]??0,g.streaks[winner]);}
  for(const id of Object.keys(g.streaks))if(id!==winner)g.streaks[id]=0;
  g.event=`Hand ${g.handNumber} complete${winner?` — ${g.names[winner]} is President`:''}`;
- if(winner&&g.streaks[winner]>=r.paSettings!.consecutiveForDecree){g.stage='decree';g.pendingPresident=winner;g.decreeActionsRemaining=1;g.stageEndsAt=now+r.paSettings!.decreeSeconds*1000;}
- else setReady(r);
+ // A normal hand gets the same server-synchronized reveal as End Game.
+ // Keep the next phase pending so Ready cannot start another hand early,
+ // and a Presidential Decree doesn't steal the screen before rankings appear.
+ const decreeDue=Boolean(winner&&g.streaks[winner]>=r.paSettings!.consecutiveForDecree);
+ g.stage='finale';g.finaleStartedAt=now;
+ g.finaleNextStage=decreeDue?'decree':'ready';
+ g.pendingPresident=decreeDue?winner:undefined;
+ g.decreeActionsRemaining=decreeDue?1:0;
+ g.stageEndsAt=paFinaleRevealEndsAt(now,ranks.length)+PA_FINALE_HOLD_MS;
  return true;
 }
-function setReady(r:RoomState){const g=r.pa!;g.stage='ready';g.ready=[];g.stageEndsAt=undefined;g.decreeActionsRemaining=0;g.pendingPresident=undefined;g.vote=undefined;g.exchange=[];}
+function setReady(r:RoomState){const g=r.pa!;g.stage='ready';g.ready=[];g.stageEndsAt=undefined;g.finaleNextStage=undefined;g.decreeActionsRemaining=0;g.pendingPresident=undefined;g.vote=undefined;g.exchange=[];}
 function finishCards(r:RoomState,id:string){
  const g=r.pa!;
  if(g.hands[id].length===0&&!g.finished.includes(id)){g.finished.push(id);g.event=`${g.names[id]} finished in place ${g.finished.length}`;}
@@ -463,8 +470,17 @@ export function advancePA(r:RoomState,now=Date.now(),random:()=>number=Math.rand
  // Multiple phase boundaries may be overdue after restart; bounded for safety.
  for(let n=0;n<10;n++){
   if(g.stage==='finale'&&g.stageEndsAt!==undefined&&g.stageEndsAt<=now){
-   g.stage='ended';g.event='Game ended';g.stageEndsAt=undefined;
-   r.status='results';
+   const next=g.finaleNextStage??'ended';
+   g.finaleNextStage=undefined;
+   if(next==='decree'&&g.pendingPresident){
+    g.stage='decree';
+    g.stageEndsAt=now+r.paSettings!.decreeSeconds*1000;
+   }else if(next==='ready'){
+    setReady(r);
+   }else{
+    g.stage='ended';g.event='Game ended';g.stageEndsAt=undefined;
+    r.status='results';
+   }
    continue;
   }
   if(g.stage==='play'&&g.turnEndsAt!==undefined&&g.turnEndsAt<=now){
@@ -499,7 +515,7 @@ export function endPA(r:RoomState,id:string,now=Date.now()){
  if(current(r).length>=4)throw Error('End Game is available only with fewer than four players.');
  if(!r.pa||r.pa.stage!=='ready')throw Error('Finish the current hand first.');
  const g=r.pa;
- g.stage='finale';g.finaleStartedAt=now;
+ g.stage='finale';g.finaleStartedAt=now;g.finaleNextStage='ended';
  g.stageEndsAt=paFinaleRevealEndsAt(now,g.handRanks.length)+PA_FINALE_HOLD_MS;
  g.event='Game over!';r.status='playing';
 }

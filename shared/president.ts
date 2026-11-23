@@ -56,7 +56,7 @@ export interface PAState {
   lastPass?:{by:string;at:number;serial:number};
   lastPlayed?:{by:string;at:number;serial:number};
   drinkEvents?:Record<string,{serial:number;at:number}>;
-  exchange:PAExchange[]; stageEndsAt?:number; finaleStartedAt?:number; decrees:PADecree[];
+  exchange:PAExchange[]; stageEndsAt?:number; finaleStartedAt?:number; finaleNextStage?:'ready'|'decree'|'ended'; decrees:PADecree[];
   pendingPresident?:string; decreeActionsRemaining:number; vote?:PAVote;
   presidencies:Record<string,number>; streaks:Record<string,number>; longestStreak:Record<string,number>;
   playerStats?:Record<string,PAPlayerStats>;handStats?:Record<string,PAPlayerStats>;
