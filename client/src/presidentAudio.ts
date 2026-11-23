@@ -64,6 +64,7 @@ export function usePresidentSounds(view:RoomView,now:number,offset:number){
   window.addEventListener('keydown',onGesture,{capture:true});
   return()=>{window.removeEventListener('pointerdown',onGesture,{capture:true});window.removeEventListener('keydown',onGesture,{capture:true});};
  },[enabled,unlock]);
+ useEffect(()=>{if(!enabled&&context.current?.state==='running')void context.current.suspend().catch(()=>{});},[enabled]);
  useEffect(()=>()=>{if(context.current){void context.current.close().catch(()=>{});context.current=null;}},[]);
  const toggle=useCallback(()=>{
   setEnabled(previous=>{
@@ -85,4 +86,44 @@ export function usePresidentSounds(view:RoomView,now:number,offset:number){
   }
  },[view,now,offset,enabled]);
  return {enabled,toggle,unlock};
+}
+
+
+/**
+ * Presenter background music is independent of gameplay effects.
+ * Uses the already self-hosted, licensed Survey Show soundtrack files.
+ * Never starts on a player phone.
+ */
+export function usePresidentMusic(view:RoomView){
+ const [enabled,setEnabled]=useState(()=>{
+  try{return window.localStorage.getItem('curtbox.pa.music')==='on';}catch{return false;}
+ });
+ const active=view.me.role==='host'&&!view.me.hostWaiting;
+ const stage=view.pa?.stage;
+ const track=stage==='play'?'guess':stage==='exchange'||stage==='decree'||stage==='vote'?'predict':'lobby';
+ const audio=useRef<HTMLAudioElement|null>(null);
+ const toggle=useCallback(()=>{
+  setEnabled(old=>{
+   const next=!old;
+   try{window.localStorage.setItem('curtbox.pa.music',next?'on':'off');}catch{/* Storage optional. */}
+   return next;
+  });
+ },[]);
+ useEffect(()=>{
+  if(!active||!enabled)return;
+  const music=new Audio(`/audio/music/${track}.ogg`);
+  music.loop=true;music.preload='auto';music.volume=.20;
+  audio.current=music;
+  const unlock=()=>{if(audio.current===music)void music.play().catch(()=>{});};
+  unlock();
+  window.addEventListener('pointerdown',unlock,{capture:true});
+  window.addEventListener('keydown',unlock,{capture:true});
+  return()=>{
+   window.removeEventListener('pointerdown',unlock,{capture:true});
+   window.removeEventListener('keydown',unlock,{capture:true});
+   music.pause();music.removeAttribute('src');music.load();
+   if(audio.current===music)audio.current=null;
+  };
+ },[active,enabled,track]);
+ return {enabled,toggle};
 }
