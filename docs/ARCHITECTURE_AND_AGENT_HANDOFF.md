@@ -227,3 +227,7 @@ Issue details and acceptance criteria are linked in `docs/ROADMAP.md`: #11 separ
 
 ## Connection status presentation change (issue #2)
 The public presenter surfaces now render a shared `ConnectionName` component based on `RoomView.participants[].online` (Survey Show) and `PAPublic.seats[].online` (President / Asshole). Virtual bots explicitly never receive a warning. This is UI-only; server disconnect/grace/reconnect state is unchanged. Regression tests: `client/tests/connection-indicators.test.mjs`. Test physical TV presentation and live reconnect flows before production.
+
+## Equal-rank skip implementation (issue #3)
+
+Ordinary same-rank/same-size legal plays **retain the pile** and skip exactly one next active seat in the current play direction. The new `PAState.lastSkip = {by,skipped,at,serial}` event is persisted and sent via `PAPublic.lastSkip` to presenter/affected phone; UI shows a short **Skipped** animation without exposing private cards. Completed Social and independent special clears retain prior clear behavior. Skip events reset on a fresh hand. Server tests exercise reverse direction, chained skips, finished players, Social and special clears. Client static checks cover both surfaces and reduced-motion CSS. Run `npm test && npm run test:pure && npm run build` before merging; manual multiplayer QA is separate. Issue #11 will add an audible skip cue later.

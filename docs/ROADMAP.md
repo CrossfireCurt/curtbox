@@ -22,7 +22,7 @@
 
 ## Approved gameplay correction versus current behavior
 
-The source currently clears the pile on ordinary equal-rank responses. The user subsequently clarified that **ordinary equal-rank responses skip the next active player**, and **a successful Social clears the pile**. Other pre-existing special clears still apply. Until #3 is implemented and merged, this is a documented pending code defect, not live functionality.
+The engine now skips the next active player for ordinary equal-rank responses and retains pile state; successful Social clears the pile. Skip animations appear on the public board and affected phone. Other special clears remain unchanged. Added engine and client regression checks in the PR for #3; full multi-device QA remains recommended.
 
 ## Workflow
 
