@@ -42,8 +42,8 @@ jobs:
         run: npm run test:audio
       - name: Branch cleanup safety tests
         run: npm run test:branch-cleanup
-      - name: Install licensed Social cheer for the packaged game
-        run: npm run audio:social
+      - name: Install licensed Mixkit Social and Skip sound effects
+        run: npm run audio:mixkit
       - name: Production build
         run: npm run build
       - name: Package compiled app
