@@ -5,10 +5,10 @@ import type {PAPlayerStats} from '../../shared/president';
  */
 export function resultStatChips(stats:PAPlayerStats|undefined,presidencies:number){
  const candidates=[
-  {key:'clears',name:'Clears',label:'Clears',value:stats?.pilesCleared??0},
+  {key:'clears',name:'Clears',label:'🧹',value:stats?.pilesCleared??0},
   {key:'socials',name:'Socials',label:'🍻',value:stats?.socials??0},
   {key:'skips',name:'Skips issued',label:'⏭️',value:stats?.skips??0},
-  {key:'passes',name:'Passes',label:'Passes',value:stats?.passes??0},
+  {key:'passes',name:'Passes',label:'✋',value:stats?.passes??0},
   {key:'presidencies',name:'Presidencies',label:'🇺🇸',value:presidencies}
  ];
  return candidates.filter(stat=>Number.isFinite(stat.value)&&stat.value>0);
