@@ -31,3 +31,25 @@ Each issue should have one focused PR with engine/client tests and accompanying 
 ## Android TV delivery note
 
 The Android TV source and GitHub APK build now live under `android-tv/` and `.github/workflows/android-tv.yml`; `docs/ANDROID_TV.md` documents sideloading and validation. **Do not close issue #1 until a physical Android TV/Google TV and compatible Fire TV or emulators have been validated**, including remote controls, host create/settings, URL configuration and reconnect. This is an initial sideloadable debug build rather than a fully signed store-distributed release.
+
+
+## Additional President / Asshole user requests — November 23, 2026
+
+These are **queued, not implemented**. Preserve the existing order (#2–#8) before taking these unless the user reprioritizes. A repeat of the same-rank-selection requirement has been consolidated into **existing [#6](https://github.com/CrossfireCurt/curtbox/issues/6)**, not filed as a duplicate.
+
+| Queue order | Issue | Accepted request |
+| --- | --- | --- |
+| 9 | [#11](https://github.com/CrossfireCurt/curtbox/issues/11) | Card/table sounds, Social cheering, pile-clear whoosh; **player-only** turn-start/ticking/skipped cues and drinking glass clink |
+| 10 | [#12](https://github.com/CrossfireCurt/curtbox/issues/12) | Show live server-authoritative turn countdown in the **active player's presenter square** |
+| 11 | [#13](https://github.com/CrossfireCurt/curtbox/issues/13) | Label the **current** pile's combination as Single, Pair, Triple or Four-of-a-kind (not total accumulated cards) |
+| 12 | [#14](https://github.com/CrossfireCurt/curtbox/issues/14) | Preserve the player's valid preselected cards when their turn becomes active |
+
+### Verified source behavior relevant to these issues
+
+- `client/src/PresidentAsshole.tsx` has a global host countdown in `pa-stage-head`, **not** an individual countdown within the active `pa-seat` ([#12](https://github.com/CrossfireCurt/curtbox/issues/12)).
+- The client explicitly clears `selected` on each `game.currentPlayerId` change, causing preselected cards to disappear at turn changes ([#14](https://github.com/CrossfireCurt/curtbox/issues/14)).
+- The client currently permits mixed-rank multi-selection; implement a same-rank-only picker for **play/Social**, while allowing mixed ranks for **Card Exchange** ([#6](https://github.com/CrossfireCurt/curtbox/issues/6)).
+- Audio under `client/src/audio.ts` is predominantly Survey Show / host presentation. President / Asshole audio should use event-safe, locally available sounds and respect player-only cues ([#11](https://github.com/CrossfireCurt/curtbox/issues/11)).
+- The live pile display has card faces, but no explicit combination-size label ([#13](https://github.com/CrossfireCurt/curtbox/issues/13)). Coordinate pile visibility and history with #4–#5.
+
+The Android TV app was merged via [PR #10](https://github.com/CrossfireCurt/curtbox/pull/10) and its APK build succeeded; [#1](https://github.com/CrossfireCurt/curtbox/issues/1) remains open for actual device validation. The next **feature implementation** remains the cross-game disconnected-player warning ([#2](https://github.com/CrossfireCurt/curtbox/issues/2)).
