@@ -485,8 +485,19 @@ export function publicPA(r:RoomState,me:Participant):PAPublic|undefined{
  const g=r.pa;if(!g)return;const host=me.role==='host',myId=me.id;
  const joined=current(r).map(p=>p.id);const seats=uniq([...g.seats.filter(id=>joined.includes(id)),...joined]);
  const exchange=g.exchange.find(e=>e.upper===myId);
- return {stage:g.stage,handNumber:g.handNumber,seats:seats.map(id=>({id,name:g.names[id]??player(r,id)?.name??'Player',cards:g.hands[id]?.length??0,position:g.previousRanks.find(x=>x.id===id)?.position,online:player(r,id)?.online??false,ready:isBot(r,id)||g.ready.includes(id),bot:isBot(r,id),nextHand:g.stage!=='ready'&&!g.active.includes(id)})),
+ const finishPosition=(id:string)=>g.handRanks.find(x=>x.id===id)?.position??
+  (g.finished.includes(id)?g.finished.indexOf(id)+1:undefined);
+ const handPlayerCount=g.handRanks.length||g.active.length||current(r).length;
+ const playRule=!host&&g.stage==='play'&&g.active.includes(myId)&&!g.finished.includes(myId)?{
+  empty:g.pile.length===0,
+  rank:g.pileRank===undefined?undefined:RANKS[g.pileRank],
+  count:g.lastPlay?.count??1,
+  openingCard:g.handNumber===1&&!g.lastPlay&&!g.pile.length&&!g.lastClear?r.paSettings!.openingCard:undefined,
+  doubleTrouble:has(g,'double_trouble')
+ }:undefined;
+ return {stage:g.stage,handNumber:g.handNumber,seats:seats.map(id=>({id,name:g.names[id]??player(r,id)?.name??'Player',cards:g.hands[id]?.length??0,position:g.previousRanks.find(x=>x.id===id)?.position,finishedPosition:finishPosition(id),online:player(r,id)?.online??false,ready:isBot(r,id)||g.ready.includes(id),bot:isBot(r,id),nextHand:g.stage!=='ready'&&!g.active.includes(id)})),
   currentPlayerId:g.turn,turnEndsAt:g.turnEndsAt,stageEndsAt:g.stageEndsAt,
+  handPlayerCount,myFinishPosition:!host?finishPosition(myId):undefined,playRule,
   pile:host?[...g.pile]:undefined,pileOwner:host?g.pileOwner:undefined,
   pilePlays:host?pilePlays(g).map(p=>({...p,cards:[...p.cards]})):undefined,
   pileHistory:host?(g.pileHistory??[]).map(h=>({...h,cards:[...h.cards],plays:h.plays.map(p=>({...p,cards:[...p.cards]}))})):undefined,

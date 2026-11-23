@@ -76,3 +76,6 @@ President / Asshole now has locally synthesized card placement, Social applause,
 
 ## Issue #24 — Revised Social completion
 Complete four of kind using the top contiguous same-rank run across earlier plays; on-turn four-of-kind always Social. One Play/Social action button, group drinking in Asshole mode, and correctly attributed last-hand clears. Adds engine/client tests; manual multiplayer and TV QA remains.
+
+## Issue #25 — Circular table, readable pile, bot/rank icons and legal cards
+The board now arranges seats around the central pile and strongly labels its current combination; card values are larger. Bots use 🤖; finished seats have a green border and rank symbols. Player phones show expected finishing rank and disable card ranks which cannot form legal moves, showing Pass alone when no cards can be played. The legal context is server-produced without exposing pile cards to phones. CI tests and live 4–8 seat visual/interaction QA are separate validation steps.

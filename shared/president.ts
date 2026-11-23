@@ -52,7 +52,10 @@ export interface PAState {
   event?:string;
 }
 export interface PAPublic {
-  stage:PAStage;handNumber:number;seats:{id:string;name:string;cards:number;position?:number;online:boolean;ready:boolean;bot:boolean;nextHand?:boolean}[];
+  stage:PAStage;handNumber:number;seats:{id:string;name:string;cards:number;position?:number;finishedPosition?:number;online:boolean;ready:boolean;bot:boolean;nextHand?:boolean}[];
+  handPlayerCount:number;myFinishPosition?:number;
+  /** Phone-only combination requirement; never exposes public pile cards or opponents' hands. */
+  playRule?:{empty:boolean;rank?:string;count:number;openingCard?:PACard;doubleTrouble:boolean};
   currentPlayerId?:string;turnEndsAt?:number;stageEndsAt?:number;pile?:PACard[];pileOwner?:string;
   pilePlays?:PAPilePlay[];pileHistory?:PAClearedPile[];
   lastClear?:PAState['lastClear'];lastSkip?:PAState['lastSkip'];
