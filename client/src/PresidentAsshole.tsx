@@ -7,7 +7,7 @@ import {presentPile} from './presentPile';
 import {cardBackStackLayout} from './presidentSeatCards';
 import {resultStatChips} from './presidentResultStats';
 import type {RoomView} from '../../shared/types';
-import type {PACard,PADecreeAction,PADecreeKey,PASettings,PAPublic,PAPlayerStats} from '../../shared/president';
+import type {PACard,PADecreeAction,PADecreeKey,PASettings,PAPublic} from '../../shared/president';
 import {PA_DECREE_NAMES} from '../../shared/president';
 
 type Props={view:RoomView;now:number;offset:number;onAction:(action:string,data?:unknown)=>Promise<unknown>;settingsOpen?:boolean;onCloseSettings?:()=>void;onSettingsChange?:(data:Partial<PASettings>)=>void};
