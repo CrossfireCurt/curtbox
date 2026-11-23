@@ -10,7 +10,7 @@ import type {RoomView} from '../../shared/types';
 import type {PACard,PADecreeAction,PADecreeKey,PASettings,PAPublic,PAPlayerStats} from '../../shared/president';
 import {PA_DECREE_NAMES} from '../../shared/president';
 
-type Props={view:RoomView;now:number;offset:number;onAction:(action:string,data?:unknown)=>Promise<unknown>};
+type Props={view:RoomView;now:number;offset:number;onAction:(action:string,data?:unknown)=>Promise<unknown>;settingsOpen?:boolean;onCloseSettings?:()=>void;onSettingsChange?:(data:Partial<PASettings>)=>void};
 const RANK=['3','4','5','6','7','8','9','10','J','Q','K','A','2'];
 const suit=(card:PACard)=>({S:'♠',H:'♥',D:'♦',C:'♣'}[card.slice(-1)]??'?');
 const isRed=(c:PACard)=>['H','D'].includes(c.slice(-1));
@@ -83,7 +83,7 @@ export function PASettingsEditor({settings,onChange}:{settings:PASettings;onChan
  </div>;
 }
 
-export function PresidentAsshole({view,now,offset,onAction}:Props){
+export function PresidentAsshole({view,now,offset,onAction,settingsOpen=false,onCloseSettings,onSettingsChange}:Props){
  const game=view.pa,s=view.paSettings;
  const sounds=usePresidentSounds(view,now,offset);
  const music=usePresidentMusic(view);
@@ -112,7 +112,8 @@ export function PresidentAsshole({view,now,offset,onAction}:Props){
  const roomCode=view.code;
  // A single compact pile fan replaces play-by-play panels.
  const pileView=presentPile(game.pile??[],game.pilePlays??[]);
- const clearedHistory=[...(game.pileHistory??[])].reverse();
+ // Only two most recent cleared piles, left to right oldest to newest.
+ const clearedHistory=(game.pileHistory??[]).slice(-2);
  // Between-hand results temporarily replace (rather than sit below) the table.
  // The server's ready/ended stage controls this transition, not a client timer.
  const resultsTakeover=game.handRanks.length>0&&(game.stage==='ready'||game.stage==='ended');
@@ -125,24 +126,15 @@ export function PresidentAsshole({view,now,offset,onAction}:Props){
   ?game.lastSkip:undefined;
  const scoreboard=[...Object.entries(game.presidencies)].sort((a,b)=>b[1]-a[1]||(game.longestStreak[b[0]]??0)-(game.longestStreak[a[0]]??0));
  return host?<section className="pa-stage" aria-label="President / Asshole public presentation">
-  <div className="pa-stage-head"><div><div className="section-kicker">{s.mode==='asshole'?'ASSHOLE':'PRESIDENT'} · HAND {game.handNumber||'—'}</div><h1>{resultsTakeover?'Last hand results':game.stage==='ready'?'Ready for the next hand':game.stage==='exchange'?'Card exchange':game.stage==='decree'?'Presidential decrees':game.stage==='vote'?'Democracy in session':game.stage==='ended'?'Game ended':'Cards on the table'}</h1></div><div className="pa-clock">{formatLeft(game.stage==='play'?game.turnEndsAt:game.stageEndsAt,now,offset)}</div><div className="pa-audio-controls" aria-label="Presenter audio settings">
-   <div className="pa-audio-channel">
-    <button type="button" className="btn btn-small pa-sound-toggle" onClick={music.toggle} aria-label="Toggle music" aria-pressed={music.enabled}>{music.enabled?'🎵 Music on':'🎵 Music off'}</button>
-    <label className="pa-audio-volume">Music volume <span>{Math.round(music.volume*100)}%</span><input type="range" aria-label="Music volume" min="0" max="1" step="0.05" value={music.volume} onChange={e=>music.setVolume(Number(e.target.value))}/></label>
-   </div>
-   <div className="pa-audio-channel">
-    <button type="button" className="btn btn-small pa-sound-toggle" onClick={sounds.toggle} aria-label="Toggle sound effects" aria-pressed={sounds.enabled}>{sounds.enabled?'🔊 Effects on':'🔇 Effects off'}</button>
-    <label className="pa-audio-volume">Sound effects volume <span>{Math.round(sounds.volume*100)}%</span><input type="range" aria-label="Sound effects volume" min="0" max="1" step="0.05" value={sounds.volume} onChange={e=>sounds.setVolume(Number(e.target.value))}/></label>
-   </div>
-  </div></div>
+  <div className="pa-stage-head"><div className="section-kicker">{s.mode==='asshole'?'ASSHOLE':'PRESIDENT'} · HAND {game.handNumber||'—'}</div><div className="pa-clock">{formatLeft(game.stage==='play'?game.turnEndsAt:game.stageEndsAt,now,offset)}</div></div>
   {resultsTakeover?<section className="pa-results-screen" aria-label="Last hand statistics">
    <div className="pa-results-banner">
-    <div><div className="section-kicker">HAND {game.handNumber} COMPLETE</div><h2>Last hand</h2><p>Rankings and highlights from the completed hand</p></div>
+    <div className="section-kicker">HAND {game.handNumber} COMPLETE</div>
     {game.stage==='ready'?<div className="pa-results-ready"><strong>{readyPlayers} / {game.seats.length} ready</strong><span>Waiting for everyone to ready up for the next hand</span></div>:<div className="pa-results-ready"><strong>Game finished</strong><span>Final hand results</span></div>}
    </div>
    <HandResults game={game} asshole={s.mode==='asshole'}/>
    <div className="pa-results-footer">Join at room <strong>{roomCode}</strong> · The table returns when the next hand begins</div>
-  </section>:<div className="pa-stage-columns"><div className="pa-table"><div className="pa-table-ring">
+  </section>:<div className="pa-stage-columns"><div className="pa-table-area"><div className="pa-table"><div className="pa-table-ring">
    <div className="pa-people" aria-label="Players arranged around the pile">
     {game.seats.map((p,i)=>{
      const angle=2*Math.PI*i/Math.max(1,game.seats.length)-Math.PI/2;
@@ -178,12 +170,30 @@ export function PresidentAsshole({view,now,offset,onAction}:Props){
       </div>:<div className="pa-pile-empty">Empty pile · new lead</div>}
     </div><div className="pa-caption">{game.currentPlayerId?`${game.seats.find(p=>p.id===game.currentPlayerId)?.name??'Player'}'s turn`:''}</div>{recentClear&&<div key={recentClear.serial} className="pa-clear-notice">{recentClear.reason} — pile cleared</div>}</>:<p className="pa-wait-message">{game.event??'Waiting for players'}</p>}
    </div></div>
-  </div><aside className="pa-aside"><div className="panel"><div className="section-kicker">ROOM CODE</div><h2>{roomCode}</h2><p>Join on your phone to play. {s.botCount>0?`${s.botCount} bot${s.botCount===1?'':'s'} at this table.`:''}</p></div><div className="panel pa-pile-history"><div className="section-kicker">PILE HISTORY</div><h3>Cleared this hand</h3>{clearedHistory.length?<ol className="pa-history-list">{clearedHistory.map(entry=><li key={entry.serial}><strong>{game.names[entry.by]??'Player'} cleared</strong><small>{entry.reason} · {entry.cards.length} cards</small><div className="pa-history-cards">{entry.cards.map((c,i)=><span className={`pa-history-card ${isRed(c)?'pa-red':''}`} key={c+'-'+i}>{label(c)}</span>)}</div></li>)}</ol>:<p className="helper">No piles cleared yet.</p>}</div><div className="panel"><h3>Presidencies</h3>{scoreboard.length?scoreboard.map(([id,n])=><div className="pa-score" key={id}><span><ConnectionName name={game.names[id]??id.slice(0,6)} offline={game.seats.some(s=>s.id===id&&!s.online)} bot={game.seats.some(s=>s.id===id&&s.bot)}/></span><strong>{n}</strong></div>):<p>Scores appear after the first hand.</p>}</div><div className="panel"><h3>Active decrees</h3>{game.activeDecrees.length?game.activeDecrees.map(d=><div className="pa-decree" key={d.key}>{PA_DECREE_NAMES[d.key]} {d.value??''}{d.expiresBefore!==undefined?<small>expires before hand {d.expiresBefore}</small>:null}</div>):<p>No decrees in effect.</p>}</div></aside></div>}
+  </div><div className="panel pa-pile-history"><div className="section-kicker">PILE HISTORY</div>{clearedHistory.length?<ol className="pa-history-list">{clearedHistory.map(entry=><li key={entry.serial}><strong>{game.names[entry.by]??'Player'} cleared</strong><small>{entry.reason} · {entry.cards.length} cards</small><div className="pa-history-cards">{entry.cards.map((c,i)=><span className={`pa-history-card ${isRed(c)?'pa-red':''}`} key={c+'-'+i}>{label(c)}</span>)}</div></li>)}</ol>:<p className="helper">No piles cleared yet.</p>}</div></div><aside className="pa-aside"><div className="panel"><div className="section-kicker">ROOM CODE</div><h2>{roomCode}</h2><p>Join on your phone to play. {s.botCount>0?`${s.botCount} bot${s.botCount===1?'':'s'} at this table.`:''}</p></div><div className="panel"><h3>Presidencies</h3>{scoreboard.length?scoreboard.map(([id,n])=><div className="pa-score" key={id}><span><ConnectionName name={game.names[id]??id.slice(0,6)} offline={game.seats.some(s=>s.id===id&&!s.online)} bot={game.seats.some(s=>s.id===id&&s.bot)}/></span><strong>{n}</strong></div>):<p>Scores appear after the first hand.</p>}</div><div className="panel"><h3>Active decrees</h3>{game.activeDecrees.length?game.activeDecrees.map(d=><div className="pa-decree" key={d.key}>{PA_DECREE_NAMES[d.key]} {d.value??''}{d.expiresBefore!==undefined?<small>expires before hand {d.expiresBefore}</small>:null}</div>):<p>No decrees in effect.</p>}</div></aside></div>}
+  {settingsOpen&&onCloseSettings&&<div className="modal-backdrop" onClick={onCloseSettings}><div className="modal panel pa-host-settings" role="dialog" aria-modal="true" aria-label="President / Asshole settings" onClick={e=>e.stopPropagation()}>
+   <div className="modal-head"><h2>Settings</h2><button className="btn btn-small" onClick={onCloseSettings}>Close</button></div>
+   <h3>Audio</h3>
+   <div className="pa-audio-controls" aria-label="Presenter audio settings">
+    <div className="pa-audio-channel">
+     <button type="button" className="btn btn-small pa-sound-toggle" onClick={music.toggle} aria-label="Toggle music" aria-pressed={music.enabled}>{music.enabled?'🎵 Music on':'🎵 Music off'}</button>
+     <label className="pa-audio-volume">Music volume <span>{Math.round(music.volume*100)}%</span><input type="range" aria-label="Music volume" min="0" max="1" step="0.05" value={music.volume} onChange={e=>music.setVolume(Number(e.target.value))}/></label>
+    </div>
+    <div className="pa-audio-channel">
+     <button type="button" className="btn btn-small pa-sound-toggle" onClick={sounds.toggle} aria-label="Toggle sound effects" aria-pressed={sounds.enabled}>{sounds.enabled?'🔊 Effects on':'🔇 Effects off'}</button>
+     <label className="pa-audio-volume">Sound effects volume <span>{Math.round(sounds.volume*100)}%</span><input type="range" aria-label="Sound effects volume" min="0" max="1" step="0.05" value={sounds.volume} onChange={e=>sounds.setVolume(Number(e.target.value))}/></label>
+    </div>
+   </div>
+   <h3>Game settings</h3>
+   {view.me.creator&&view.status==='lobby'&&onSettingsChange?
+    <PASettingsEditor settings={s} onChange={onSettingsChange}/>:
+    <div className="pa-settings-summary"><span>Mode: {s.mode==='asshole'?'Asshole':'President'}</span><span>Turn timer: {s.turnSeconds}s</span><span>Bots: {s.botCount}</span><p className="helper">Game rules are editable by the room creator while in the lobby.</p></div>}
+  </div></div>}
  </section>:<section className="pa-phone">
-  <div className="pa-phone-audio">
+  <details className="pa-phone-settings"><summary>⚙ Settings</summary><div className="pa-phone-audio">
     <button type="button" className="btn btn-small pa-sound-toggle" onClick={sounds.toggle} aria-label="Toggle sound effects" aria-pressed={sounds.enabled}>{sounds.enabled?'🔊 Effects on':'🔇 Effects off'}</button>
     <label className="pa-audio-volume">Sound effects volume <span>{Math.round(sounds.volume*100)}%</span><input type="range" aria-label="Sound effects volume" min="0" max="1" step="0.05" value={sounds.volume} onChange={e=>sounds.setVolume(Number(e.target.value))}/></label>
-   </div>
+   </div></details>
   {activeSkip?.skipped===view.me.id&&<div key={activeSkip.serial} className="pa-skipped-phone" role="status">⏭ SKIPPED — your turn was bypassed</div>}
   {game.stage==='ended'&&<div className="panel pa-message"><h2>Game ended</h2>{game.handRanks.length>0?<HandResults game={game} asshole={s.mode==='asshole'} viewerId={view.me.id}/>:<p>Final leaderboard is on the host presentation.</p>}</div>}
   {view.status==='setup'&&<div className="panel pa-message"><h2>Host is setting up the room</h2><p>You can ready up once the lobby is open.</p></div>}
