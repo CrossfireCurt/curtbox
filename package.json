@@ -15,6 +15,7 @@
     "start": "npm run start -w server",
     "password-hash": "tsx scripts/hash-password.ts",
     "audio:fetch": "node scripts/fetch-audio.mjs",
+    "audio:social": "node scripts/install-social-audio.mjs",
     "audio:reactions": "node scripts/install-reaction-audio.mjs",
     "test:president:pure": "node scripts/test-president-pure.mjs",
     "test:pure": "node scripts/test-core-pure.mjs",
