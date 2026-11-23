@@ -224,10 +224,8 @@
 /* #3: Presenter and phone cues for server-authoritative equal-rank skips. */
 .pa-seat{position:relative}
 .pa-skipped-seat{position:absolute;inset:0;border:2px solid #ffd27d;border-radius:11px;background:#49321fe8;display:grid;place-items:center;color:#fff3cb;letter-spacing:.12em;font-size:clamp(1rem,1.8vw,1.65rem)!important;font-weight:900;text-shadow:0 2px 8px #000;pointer-events:none;animation:pa-skip-seat .65s cubic-bezier(.2,.8,.2,1) both}
-.pa-skipped-phone{margin:0 0 14px;border:2px solid #e8b65e;border-radius:10px;padding:20px 14px;background:#593a22;color:#fff3d3;text-align:center;font-weight:900;letter-spacing:.04em;box-shadow:0 0 25px #f2bb6d44;animation:pa-skip-phone .55s ease-out both}
 @keyframes pa-skip-seat{0%{opacity:0;transform:scale(1.15)}55%{opacity:1;transform:scale(1.02)}100%{opacity:1;transform:scale(1)}}
-@keyframes pa-skip-phone{0%{opacity:0;transform:translateY(-13px)}100%{opacity:1;transform:translateY(0)}}
-@media(prefers-reduced-motion:reduce){.pa-skipped-seat,.pa-skipped-phone{animation:none}}
+@media(prefers-reduced-motion:reduce){.pa-skipped-seat{animation:none}}
 
 /* Live pile is a chronological group of nonoverlapping plays, latest first. */
 .pa-table-center{min-width:0}
