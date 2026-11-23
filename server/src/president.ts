@@ -2,7 +2,7 @@
  * persisted atomically with the room by server/index.ts. */
 import {randomInt} from 'node:crypto';
 import type {Participant,RoomState} from '../../shared/types.js';
-import {PA_DEFAULT_SETTINGS,PA_DECREE_NAMES} from '../../shared/president.js';
+import {PA_DEFAULT_SETTINGS,PA_DECREE_NAMES,topRankRun,completesFourOfKind} from '../../shared/president.js';
 import type {PACard,PADecreeAction,PADecreeKey,PAExchange,PASettings,PAState,PAPublic,PARank,PAPilePlay,PAPlayerStats} from '../../shared/president.js';
 
 const RANKS=['3','4','5','6','7','8','9','10','J','Q','K','A','2'];
@@ -161,7 +161,7 @@ function archivePile(g:PAState,by:string,reason:string,now:number){
 }
 function clear(g:PAState,by:string,reason:string,now:number){
  archivePile(g,by,reason,now);
- g.pile=[];g.pilePlays=[];g.pileOwner=undefined;g.pileRank=undefined;g.passed=[];g.lastPlay=undefined;
+ g.pile=[];g.pilePlays=[];g.pileOwner=undefined;g.pileRank=undefined;g.passed=[];g.lastPlay=undefined;g.lastSkip=undefined;
  const s=g.active.includes(by)&&!g.finished.includes(by)?by:nextIn(g,by,g.finished,activeDirection(g));chooseLead(g,s);
 }
 function endHand(r:RoomState,now:number){
@@ -182,10 +182,9 @@ function endHand(r:RoomState,now:number){
  return true;
 }
 function setReady(r:RoomState){const g=r.pa!;g.stage='ready';g.ready=[];g.stageEndsAt=undefined;g.decreeActionsRemaining=0;g.pendingPresident=undefined;g.vote=undefined;g.exchange=[];}
-function finishCards(r:RoomState,id:string,now:number){
+function finishCards(r:RoomState,id:string){
  const g=r.pa!;
  if(g.hands[id].length===0&&!g.finished.includes(id)){g.finished.push(id);g.event=`${g.names[id]} finished in place ${g.finished.length}`;}
- return endHand(r,now);
 }
 function nextTurn(r:RoomState,from:string,now:number){const g=r.pa!,next=nextIn(g,from,g.finished,activeDirection(g));
  if(!next){endHand(r,now);return;}
@@ -195,28 +194,57 @@ export function playPA(r:RoomState,id:string,cards:PACard[],now=Date.now(),socia
  const g=r.pa!;requirePlayer(r,id);
  if(!g||g.stage!=='play'||!g.active.includes(id)||g.finished.includes(id))throw Error('You are not playing this hand.');
  if(!automatic)ensureUnblocked(g,id);
- if(!social&&g.turn!==id)throw Error('Not your turn.');
- if(social&&!r.paSettings!.social)throw Error('Social is disabled.');
- const rank=validateCards(g,id,cards);const previous=g.lastPlay;
- if(social){if(!previous||previous.player===id||previous.rank!==rank||previous.count+cards.length!==4||rank===12)throw Error('No eligible Social play.');}
- else if(g.handNumber===1&&g.finished.length===0&&!g.lastPlay&&!g.pile.length&&!g.lastClear&&!cards.includes(r.paSettings!.openingCard))throw Error(`Opening play must include ${r.paSettings!.openingCard}.`);
+ const rank=validateCards(g,id,cards),onTurn=g.turn===id;
+ const run=topRankRun(g.pile);
+ const runComplete=!!run&&run.rank===cards[0].slice(0,-1)&&run.count>=1&&run.count<=3&&run.count+cards.length===4;
+ const completed=completesFourOfKind(g.pile,cards);
+ // Playing on turn can complete a four-of-kind even when interruptions are off.
+ // Off-turn play needs a matching top run, distinct last actor and Social enabled.
+ if(!onTurn){
+  if(!social)throw Error('Not your turn.');
+  if(!r.paSettings!.social)throw Error('Social is disabled.');
+  if(!runComplete||!g.lastPlay||g.lastPlay.player===id)throw Error('No eligible Social play.');
+ }else if(social&&!completed)throw Error('No eligible Social play.');
+ if(onTurn&&g.handNumber===1&&g.finished.length===0&&!g.lastPlay&&!g.pile.length&&!g.lastClear&&!cards.includes(r.paSettings!.openingCard))
+  throw Error(`Opening play must include ${r.paSettings!.openingCard}.`);
  const special=rank===12||cards.length===4||(has(g,'double_trouble')&&rank===0&&cards.length===2);
- if(!social&&g.pile.length&&!special){if(cards.length!==g.lastPlay?.count)throw Error('Match the number of cards in the latest play.');if(rank<(g.pileRank??-1))throw Error('You must play a higher rank.');}
- const equal=!social&&g.pile.length>0&&rank===g.pileRank;
- g.hands[id]=g.hands[id].filter(c=>!cards.includes(c));g.pile.push(...cards);g.pileOwner=id;g.pileRank=rank;g.lastPlay={player:id,rank,count:cards.length,cards:[...cards],serial:++g.serial};g.lastPlayed={by:id,at:now,serial:g.lastPlay.serial};(g.pilePlays??=[]).push({by:id,cards:[...cards],serial:g.lastPlay.serial});g.passed=[];
+ // Finishing a Social overrides ordinary combination-size comparison.
+ if(onTurn&&g.pile.length&&!special&&!completed){
+  if(cards.length!==g.lastPlay?.count)throw Error('Match the number of cards in the latest play.');
+  if(rank<(g.pileRank??-1))throw Error('You must play a higher rank.');
+ }
+ const equal=!completed&&g.pile.length>0&&rank===g.pileRank;
+ g.hands[id]=g.hands[id].filter(c=>!cards.includes(c));
+ g.pile.push(...cards);g.pileOwner=id;g.pileRank=rank;
+ g.lastPlay={player:id,rank,count:cards.length,cards:[...cards],serial:++g.serial};
+ g.lastPlayed={by:id,at:now,serial:g.lastPlay.serial};
+ (g.pilePlays??=[]).push({by:id,cards:[...cards],serial:g.lastPlay.serial});g.passed=[];
  addStat(g,id,'cardsPlayed',cards.length);
- if(social)addStat(g,id,'socials');
+ if(completed)addStat(g,id,'socials');
  if(rank===12)addStat(g,id,'twosPlayed',cards.length);
- if(rank===12&&has(g,'drink_twos'))for(const target of g.active)if(target!==id&&!isBot(r,target)&&!g.finished.includes(target))notifyDrink(g,target,`${g.names[id]} played a 2 — drink`,now);
- const ended=finishCards(r,id,now);if(ended)return;
- if(social||special){clear(g,id,social?'Social':'Special clear',now);g.turnEndsAt=now+r.paSettings!.turnSeconds*1000;}
- else if(equal){
-  // A normal equal-rank response leaves the pile live and skips exactly one
-  // still-active player in the current play direction. Social clears instead.
-  const skipped=nextIn(g,id,g.finished,activeDirection(g));
-  if(skipped){g.lastSkip={by:id,skipped,at:now,serial:++g.serial};nextTurn(r,skipped,now);}
-  else nextTurn(r,id,now);
- }else nextTurn(r,id,now);
+ // All human seats receive a single Social prompt, including its completer
+ // and already-finished players, but bots never receive drink prompts.
+ if(completed&&r.paSettings!.mode==='asshole')
+  for(const human of humans(r))notifyDrink(g,human.id,`${g.names[id]} completed a Social — everyone drinks`,now);
+ // Avoid double prompting if a four-of-a-kind of 2s is also a Social.
+ if(!completed&&rank===12&&has(g,'drink_twos'))
+  for(const target of g.active)if(target!==id&&!isBot(r,target)&&!g.finished.includes(target))
+   notifyDrink(g,target,`${g.names[id]} played a 2 — drink`,now);
+ finishCards(r,id);
+ // Clear before end-of-hand resolution so a finishing Social is still
+ // recorded as Social in pile history, stats and presenter audio.
+ if(completed||special){
+  clear(g,id,completed?'Social':'Special clear',now);
+  if(endHand(r,now))return;
+  g.turnEndsAt=now+r.paSettings!.turnSeconds*1000;
+ }else{
+  if(endHand(r,now))return;
+  if(equal){
+   const skipped=nextIn(g,id,g.finished,activeDirection(g));
+   if(skipped){g.lastSkip={by:id,skipped,at:now,serial:++g.serial};nextTurn(r,skipped,now);}
+   else nextTurn(r,id,now);
+  }else nextTurn(r,id,now);
+ }
 }
 export function passPA(r:RoomState,id:string,now=Date.now(),manual=true){
  const g=r.pa!;if(!g||g.stage!=='play'||g.turn!==id)throw Error('Not your turn.');
@@ -324,14 +352,17 @@ export function botDelayPA(kind:'play'|'social',random:()=>number=Math.random){
 function botTask(r:RoomState):{key:string;delay:number;kind?:'play'|'social';run:(now:number)=>void}|undefined{
  const g=r.pa;if(!g||!(g.bots??[]).length)return;
  if(g.stage==='play'){
-  if(r.paSettings!.social&&g.lastPlay&&g.lastPlay.rank!==12){
-   const last=g.lastPlay;
-   for(const b of g.bots){
-    if(!g.active.includes(b.id)||g.finished.includes(b.id)||b.id===last.player)continue;
-    const matching=(g.hands[b.id]??[]).filter(c=>order(c)===last.rank);
-    if(matching.length>=4-last.count){
-     const cards=matching.slice(0,4-last.count);
-     return {key:`social:${last.serial}:${b.id}`,delay:2400,kind:'social',run:now=>playPA(r,b.id,cards,now,true,true)};
+  if(r.paSettings!.social&&g.lastPlay){
+   const last=g.lastPlay,run=topRankRun(g.pile);
+   const needed=run&&run.count>=1&&run.count<=3?4-run.count:0;
+   if(needed&&run&&run.rank===RANKS[last.rank]){
+    for(const b of g.bots){
+     if(!g.active.includes(b.id)||g.finished.includes(b.id)||b.id===last.player)continue;
+     const matching=(g.hands[b.id]??[]).filter(c=>c.slice(0,-1)===run.rank);
+     if(matching.length>=needed){
+      const cards=matching.slice(0,needed);
+      return {key:`social:${last.serial}:${b.id}`,delay:2400,kind:'social',run:now=>playPA(r,b.id,cards,now,true,true)};
+     }
     }
    }
   }
@@ -397,6 +428,11 @@ function botPlay(r:RoomState,id:string):PACard[]|undefined{
   if(candidates.length){candidates.sort((a,b)=>b.group.length-a.group.length||a.rank-b.rank);return candidates[0].group;}
   return groups[12];
  }
+ const top=topRankRun(g.pile);
+ if(top&&top.count>=1&&top.count<=3){
+  const matching=groups[order(top.rank)];
+  if(matching?.length>=4-top.count)return matching.slice(0,4-top.count);
+ }
  const needed=g.lastPlay?.count??1,rank=g.pileRank??-1;
  const normal=groups.map((group,i)=>({group,i})).filter(x=>x.i!==12&&x.i>=rank&&x.group.length>=needed);
  if(normal.length){normal.sort((a,b)=>a.i-b.i);return normal[0].group.slice(0,needed);}
@@ -458,8 +494,8 @@ export function publicPA(r:RoomState,me:Participant):PAPublic|undefined{
   myHand:!host?[...(g.hands[myId]??[])].sort((a,b)=>order(a)-order(b)):undefined,myReady:g.ready.includes(myId),inHand:g.active.includes(myId),myFinished:g.finished.includes(myId),
   myExchange:!host&&exchange?{count:exchange.count,original:exchange.original,selected:exchange.selected}:undefined,
   myPendingDrinks:!host?(g.drinking[myId]??[]):undefined,
-  canSocial:!host&&r.paSettings!.social&&Boolean(g.lastPlay&&g.lastPlay.player!==myId&&g.lastPlay.rank!==12),
-  socialRequirement:!host&&r.paSettings!.social&&g.lastPlay&&g.lastPlay.player!==myId&&g.lastPlay.rank!==12?{rank:RANKS[g.lastPlay.rank],count:4-g.lastPlay.count}:undefined,
+  canSocial:!host&&r.paSettings!.social&&g.stage==='play'&&g.active.includes(myId)&&!g.finished.includes(myId)&&g.lastPlay?.player!==myId&&Boolean(topRankRun(g.pile)&&topRankRun(g.pile)!.count<4),
+  socialRequirement:!host&&g.stage==='play'&&topRankRun(g.pile)&&topRankRun(g.pile)!.count>=1&&topRankRun(g.pile)!.count<=3?{rank:topRankRun(g.pile)!.rank,count:4-topRankRun(g.pile)!.count}:undefined,
   canPlay:!host&&g.turn===myId,isPresident:!host&&g.pendingPresident===myId,
   vote:g.vote?{proposals:g.vote.proposals,votesCast:Object.keys(g.vote.votes).length,myVote:!host?g.vote.votes[myId]:undefined,deadline:g.vote.deadline,tieIndices:g.vote.tieIndices}:undefined,
   presidencies:g.presidencies,longestStreak:g.longestStreak,names:g.names,decreeActionsRemaining:g.decreeActionsRemaining,
