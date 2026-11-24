@@ -10,7 +10,7 @@ import {isPresidentVisualEventActive} from './presidentVisualEvents';
 import {decreeActionDescription} from './presidentDecreeDescriptions';
 import type {RoomView} from '../../shared/types';
 import type {PACard,PADecreeAction,PADecreeKey,PASettings,PAPublic} from '../../shared/president';
-import {PA_DECREE_NAMES,paFinaleRevealEndsAt,paFinaleVisibleRanks} from '../../shared/president';
+import {PA_CLEAR_PREVIEW_MS,PA_DECREE_NAMES,paFinaleRevealEndsAt,paFinaleVisibleRanks} from '../../shared/president';
 
 type Props={view:RoomView;now:number;offset:number;onAction:(action:string,data?:unknown)=>Promise<unknown>;settingsOpen?:boolean;onCloseSettings?:()=>void;onSettingsChange?:(data:Partial<PASettings>)=>void};
 const RANK=['3','4','5','6','7','8','9','10','J','Q','K','A','2'];
