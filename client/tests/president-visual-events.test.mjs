@@ -34,18 +34,28 @@ test('phone Social, Drink and Skip notifications have labeled icons over the han
  assert.match(css,/@keyframes pa-hand-event-pop-fade/);
  assert.match(css,/prefers-reduced-motion:reduce/);
 });
-test('Social preview retains real last-clear cards beneath labeled celebration',()=>{
- assert.match(ui,/const socialPreview=Boolean\(host&&game\.lastClear\?\.reason==='Social'/);
- assert.match(ui,/const previewCards=socialPreview&&game\.lastClear\?game\.lastClear\.cards/);
+test('every clear previews the archived pile and shows CLEARED! over the actual cards',()=>{
+ assert.match(ui,/const clearPreview=Boolean\(host&&game\.lastClear&&isPresidentVisualEventActive/);
+ assert.match(ui,/const previewCards=clearPreview&&game\.lastClear\?game\.lastClear\.cards/);
+ assert.match(ui,/game\.pileHistory\?\.find\(p=>p\.serial===game\.lastClear\?\.serial\)\?\.plays/);
  assert.match(ui,/presentPile\(previewCards\?\?game\.pile\?\?\[\],previewPlays\?\?game\.pilePlays\?\?\[\]\)/);
- assert.match(ui,/resultsTakeover=game\.handRanks\.length>0&&\(game\.stage==='ready'\|\|game\.stage==='ended'\)&&!socialPreview/);
+ assert.match(ui,/resultsTakeover=game\.handRanks\.length>0&&\(game\.stage==='ready'\|\|game\.stage==='ended'\)&&!clearPreview/);
+ assert.match(ui,/className=\{'pa-cleared-pile-overlay'/);
+ assert.match(ui,/className=\{'pa-cleared-pile-overlay'.*aria-label="Pile cleared!"/);
+ assert.match(ui,/<strong>CLEARED!<\/strong>/);
+ assert.doesNotMatch(ui,/recentClear&&!socialPreview/);
+ assert.match(css,/\.pa-cleared-pile-overlay\{position:absolute;inset:0;z-index:41/);
+ assert.match(css,/@keyframes pa-pile-cleared/);
+});
+test('Social plays before the clear overlay, while no-clear cards still use live pile',()=>{
+ assert.match(ui,/const socialPreview=Boolean\(clearPreview&&game\.lastClear\?\.reason==='Social'\)/);
  assert.match(ui,/className="pa-social-pile-overlay".*aria-label="Social!"><span className="pa-event-emoji" aria-hidden="true">/);
  assert.match(ui,/s\.mode==='president'\?'🎉':'🍻'/);
  assert.match(ui,/className="pa-event-label">SOCIAL!<\/strong>/);
- assert.match(ui,/recentClear&&!socialPreview/);
- assert.match(css,/\.pa-social-pile-overlay\{position:absolute;inset:0/);
- assert.match(css,/@keyframes pa-pile-social-then-clear/);
+ assert.match(css,/\.pa-cleared-pile-overlay\.after-social\{animation-delay:1\.15s/);
+ assert.match(css,/\.pa-social-pile-overlay\{animation-duration:1\.35s/);
 });
+
 test('Social that ends a hand still shows labeled Social overlay on ready results',()=>{
  assert.match(ui,/className="pa-ready-results"><HandResults/);
  assert.match(ui,/<PhoneHandOverlays social=\{socialPhoneOverlay\} drink=\{drinkOverlay\} mode=\{s\.mode\}/);
