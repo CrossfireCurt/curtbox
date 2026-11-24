@@ -2,7 +2,7 @@
  * persisted atomically with the room by server/index.ts. */
 import {randomInt} from 'node:crypto';
 import type {Participant,RoomState} from '../../shared/types.js';
-import {PA_DEFAULT_SETTINGS,PA_DECREE_NAMES,PA_FINALE_HOLD_MS,paFinaleRevealEndsAt,topRankRun,completesFourOfKind} from '../../shared/president.js';
+import {PA_DEFAULT_SETTINGS,PA_DECREE_NAMES,PA_CLEAR_PREVIEW_MS,PA_FINALE_HOLD_MS,paFinaleRevealEndsAt,topRankRun,completesFourOfKind} from '../../shared/president.js';
 import type {PACard,PADecreeAction,PADecreeKey,PAExchange,PASettings,PAState,PAPublic,PARank,PAPilePlay,PAPlayerStats} from '../../shared/president.js';
 
 const RANKS=['3','4','5','6','7','8','9','10','J','Q','K','A','2'];
