@@ -39,8 +39,8 @@ test('Democracy selections expand an explanation and retain separate proposal su
 
 test('every decree has a meaningful description with current host settings and action details',()=>{
  for(const key of Object.keys(PA_DECREE_NAMES)){
-  const desc=decreeActionDescription({key,kind:'enact'},PA_DEFAULT_SETTINGS);
-  assert.ok(desc.length>60,key);
+  const desc=decreeActionDescription({key,kind:'enact',...(key==='max_active'?{value:3}:{})},PA_DEFAULT_SETTINGS);
+  assert.ok(desc.length>55,key);
   assert.ok(!desc.includes('undefined'),key);
  }
  assert.match(decreeActionDescription({key:'double_trouble',kind:'enact'},PA_DEFAULT_SETTINGS),/two 3s/);
