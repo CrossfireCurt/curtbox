@@ -7,9 +7,10 @@ import {presentPile} from './presentPile';
 import {cardBackStackLayout} from './presidentSeatCards';
 import {resultStatChips} from './presidentResultStats';
 import {isPresidentVisualEventActive} from './presidentVisualEvents';
+import {decreeActionDescription} from './presidentDecreeDescriptions';
 import type {RoomView} from '../../shared/types';
 import type {PACard,PADecreeAction,PADecreeKey,PASettings,PAPublic} from '../../shared/president';
-import {PA_DECREE_NAMES,paFinaleRevealEndsAt,paFinaleVisibleRanks} from '../../shared/president';
+import {PA_CLEAR_PREVIEW_MS,PA_DECREE_NAMES,paFinaleRevealEndsAt,paFinaleVisibleRanks} from '../../shared/president';
 
 type Props={view:RoomView;now:number;offset:number;onAction:(action:string,data?:unknown)=>Promise<unknown>;settingsOpen?:boolean;onCloseSettings?:()=>void;onSettingsChange?:(data:Partial<PASettings>)=>void};
 const RANK=['3','4','5','6','7','8','9','10','J','Q','K','A','2'];
@@ -131,9 +132,10 @@ export function PresidentAsshole({view,now,offset,onAction,settingsOpen=false,on
  const vote=game?.vote;
  const [selected,setSelected]=useState<PACard[]>([]);
  const [nominees,setNominees]=useState<string[]>([]);
+ const [selectedDecree,setSelectedDecree]=useState<string|undefined>();
  const [lastSerial,setLastSerial]=useState<number|undefined>();
  useEffect(()=>{setSelected([]);},[view.me.id,game?.handNumber,game?.stage]);
- useEffect(()=>{setNominees([]);},[game?.handNumber,game?.stage]);
+ useEffect(()=>{setNominees([]);setSelectedDecree(undefined);},[game?.handNumber,game?.stage,game?.isPresident]);
  useEffect(()=>{if(game?.lastClear?.serial!==lastSerial)setLastSerial(game?.lastClear?.serial);},[game?.lastClear?.serial]);
  if(!game||!s)return <div className="panel">Loading President / Asshole…</div>;
  const host=view.me.role==='host';
@@ -153,23 +155,26 @@ export function PresidentAsshole({view,now,offset,onAction,settingsOpen=false,on
  // Waiting players may preselect while another seat is taking its turn.
  const choose=async(social=false)=>{const action=game.stage==='exchange'?'president:exchange':'president:play';const result=await onAction(action,{cards:selections,social});if(result)setSelected([]);};
  const options=availableChanges(view).filter(a=>s.mode==='asshole'||a.kind==='repeal'||!['drink_twos','require_ack'].includes(a.key));const optionKey=(a:PADecreeAction)=>JSON.stringify(a);
+ const selectedAction=options.find(a=>optionKey(a)===selectedDecree);
  const activeCount=game.seats.filter(x=>x.online).length;
  const rankCount=game.previousRanks.length;
  const roomCode=view.code;
  // A single compact pile fan replaces play-by-play panels.
- // Socials clear server state immediately; show a short pre-clear visual
- // from the server's archived card snapshot before revealing the empty pile.
- const socialPreview=Boolean(host&&game.lastClear?.reason==='Social'&&isPresidentVisualEventActive(game.lastClear.at,now,offset,2100));
- const previewCards=socialPreview&&game.lastClear?game.lastClear.cards:undefined;
- const previewPlays=previewCards&&game.lastClear?[{by:game.lastClear.by,cards:previewCards.slice(-4),serial:game.lastClear.serial}]:undefined;
+ // The server clears immediately for rule correctness. On the presenter,
+ // rehydrate the archived pile for 2.6 seconds so the final play (including
+ // a 2) stays visible while CLEARED! animates over the cards.
+ const clearPreview=Boolean(host&&game.lastClear&&isPresidentVisualEventActive(game.lastClear.at,now,offset,PA_CLEAR_PREVIEW_MS));
+ const socialPreview=Boolean(clearPreview&&game.lastClear?.reason==='Social');
+ const previewCards=clearPreview&&game.lastClear?game.lastClear.cards:undefined;
+ const previewPlays=clearPreview&&game.lastClear?game.pileHistory?.find(p=>p.serial===game.lastClear?.serial)?.plays:undefined;
  const pileView=presentPile(previewCards??game.pile??[],previewPlays??game.pilePlays??[]);
  // Only two most recent cleared piles, left to right oldest to newest.
  const clearedHistory=(game.pileHistory??[]).slice(-2);
  // Between-hand results temporarily replace (rather than sit below) the table.
  // The server's ready/ended stage controls this transition, not a client timer.
- const resultsTakeover=game.handRanks.length>0&&(game.stage==='ready'||game.stage==='ended')&&!socialPreview;
+ const resultsTakeover=game.handRanks.length>0&&(game.stage==='ready'||game.stage==='ended')&&!clearPreview;
+ const waitingForRoundReveal=game.stage==='finale'&&now-offset<(game.finaleStartedAt??0);
  const readyPlayers=game.seats.filter(p=>p.ready).length;
- const recentClear=game.lastClear&&now-offset>=game.lastClear.at-500&&now-offset<game.lastClear.at+2400?game.lastClear:undefined;
  // The server owns skipped-player identity and timestamp; repeated room:view
  // snapshots do not restart the short animation.
  const activeSkip=game.stage==='play'&&game.lastSkip
@@ -182,7 +187,7 @@ export function PresidentAsshole({view,now,offset,onAction,settingsOpen=false,on
  const scoreboard=[...Object.entries(game.presidencies)].sort((a,b)=>b[1]-a[1]||(game.longestStreak[b[0]]??0)-(game.longestStreak[a[0]]??0));
  return host?<section className="pa-stage" aria-label="President / Asshole public presentation">
   <div className="pa-stage-head"><div className="section-kicker">{s.mode==='asshole'?'ASSHOLE':'PRESIDENT'} · HAND {game.handNumber||'—'}</div><div className="pa-clock">{game.stage==='finale'?'':formatLeft(game.stage==='play'?game.turnEndsAt:game.stageEndsAt,now,offset)}</div></div>
-  {game.stage==='finale'?<RankingsFinale game={game} asshole={s.mode==='asshole'} now={now} offset={offset}/>:resultsTakeover?<section className="pa-results-screen" aria-label="Last hand statistics">
+  {game.stage==='finale'&&!waitingForRoundReveal?<RankingsFinale game={game} asshole={s.mode==='asshole'} now={now} offset={offset}/>:resultsTakeover?<section className="pa-results-screen" aria-label="Last hand statistics">
    <div className="pa-results-banner">
     <div className="section-kicker">HAND {game.handNumber} COMPLETE</div>
     {game.stage==='ready'?<div className="pa-results-ready"><strong>{readyPlayers} / {game.seats.length} ready</strong><span>Waiting for everyone to ready up for the next hand</span></div>:<div className="pa-results-ready"><strong>Game finished</strong><span>Final hand results</span></div>}
@@ -221,8 +226,8 @@ export function PresidentAsshole({view,now,offset,onAction,settingsOpen=false,on
      </div>;
     })}
    </div>
-   <div className="pa-table-center"><div className="section-kicker pa-pile-heading" aria-live="polite">{game.stage==='play'||socialPreview?pileView.heading:game.stage==='exchange'?'WAITING ON EXCHANGES':game.stage==='ready'?`${activeCount} / 8 PLAYERS`:'PRESIDENTIAL SESSION'}</div>
-    {(game.stage==='play'||socialPreview)?<><div className="pa-pile" role="group" aria-label="Current pile — stacked cards, latest play highlighted">
+   <div className="pa-table-center"><div className="section-kicker pa-pile-heading" aria-live="polite">{game.stage==='play'||clearPreview?pileView.heading:game.stage==='exchange'?'WAITING ON EXCHANGES':game.stage==='ready'?`${activeCount} / 8 PLAYERS`:'PRESIDENTIAL SESSION'}</div>
+    {(game.stage==='play'||clearPreview)?<><div className="pa-pile" role="group" aria-label="Current pile — stacked cards, latest play highlighted">
       {pileView.cards.length?<div className="pa-pile-fan">
        {pileView.hiddenCount>0&&<span className="pa-pile-buried" aria-label={`${pileView.hiddenCount} older cards beneath the pile`}>+${pileView.hiddenCount} below</span>}
        {pileView.cards.map(({card,latest},i)=><span className={'pa-stack-card'+(latest?' latest':'')+(isRed(card)?' pa-red':'')} key={card+'-'+i} role="img" aria-label={`${label(card)}${latest?', latest play':''}`} title={label(card)} style={{zIndex:i+1,transform:`rotate(${(i%5-2)*1.8}deg)`}}>
@@ -230,9 +235,10 @@ export function PresidentAsshole({view,now,offset,onAction,settingsOpen=false,on
        </span>)}
       </div>:<div className="pa-pile-empty">Empty pile · new lead</div>}
       {socialPreview&&game.lastClear&&<span className="pa-social-pile-overlay" key={game.lastClear.serial} role="status" aria-label="Social!"><span className="pa-event-emoji" aria-hidden="true">{s.mode==='president'?'🎉':'🍻'}</span><strong className="pa-event-label">SOCIAL!</strong></span>}
-    </div><div className="pa-caption">{game.currentPlayerId?`${game.seats.find(p=>p.id===game.currentPlayerId)?.name??'Player'}'s turn`:''}</div>{recentClear&&!socialPreview&&<div key={recentClear.serial} className="pa-clear-notice">{recentClear.reason} — pile cleared</div>}</>:<p className="pa-wait-message">{game.event??'Waiting for players'}</p>}
+      {clearPreview&&game.lastClear&&<span className={'pa-cleared-pile-overlay'+(socialPreview?' after-social':'')} key={`cleared-${game.lastClear.serial}`} role="status" aria-label="Pile cleared!"><strong>CLEARED!</strong></span>}
+    </div><div className="pa-caption">{!clearPreview&&game.currentPlayerId?`${game.seats.find(p=>p.id===game.currentPlayerId)?.name??'Player'}'s turn`:''}</div></>:<p className="pa-wait-message">{game.event??'Waiting for players'}</p>}
    </div></div>
-  </div><div className="panel pa-pile-history"><div className="section-kicker">PILE HISTORY</div>{clearedHistory.length?<ol className="pa-history-list">{clearedHistory.map(entry=><li key={entry.serial}><strong>{game.names[entry.by]??'Player'} cleared</strong><small>{entry.reason} · {entry.cards.length} cards</small><div className="pa-history-cards">{entry.cards.map((c,i)=><span className={`pa-history-card ${isRed(c)?'pa-red':''}`} key={c+'-'+i}>{label(c)}</span>)}</div></li>)}</ol>:<p className="helper">No piles cleared yet.</p>}</div></div><aside className="pa-aside"><div className="panel"><div className="section-kicker">ROOM CODE</div><h2>{roomCode}</h2><p>Join on your phone to play. {s.botCount>0?`${s.botCount} bot${s.botCount===1?'':'s'} at this table.`:''}</p></div><div className="panel"><h3>Presidencies</h3>{scoreboard.length?scoreboard.map(([id,n])=><div className="pa-score" key={id}><span><ConnectionName name={game.names[id]??id.slice(0,6)} offline={game.seats.some(s=>s.id===id&&!s.online)} bot={game.seats.some(s=>s.id===id&&s.bot)}/></span><strong>{n}</strong></div>):<p>Scores appear after the first hand.</p>}</div><div className="panel"><h3>Active decrees</h3>{game.activeDecrees.length?game.activeDecrees.map(d=><div className="pa-decree" key={d.key}>{PA_DECREE_NAMES[d.key]} {d.value??''}{d.expiresBefore!==undefined?<small>expires before hand {d.expiresBefore}</small>:null}</div>):<p>No decrees in effect.</p>}</div></aside></div>}
+  </div><div className="panel pa-pile-history"><div className="section-kicker">PILE HISTORY</div>{clearedHistory.length?<ol className="pa-history-list">{clearedHistory.map(entry=><li key={entry.serial}><strong>{game.names[entry.by]??'Player'} cleared</strong><small>{entry.reason} · {entry.cards.length} cards</small><div className="pa-history-cards">{entry.cards.map((c,i)=><span className={`pa-history-card ${isRed(c)?'pa-red':''}`} key={c+'-'+i}>{label(c)}</span>)}</div></li>)}</ol>:<p className="helper">No piles cleared yet.</p>}</div></div><aside className="pa-aside"><div className="panel"><h3>Presidencies</h3>{scoreboard.length?scoreboard.map(([id,n])=><div className="pa-score" key={id}><span><ConnectionName name={game.names[id]??id.slice(0,6)} offline={game.seats.some(s=>s.id===id&&!s.online)} bot={game.seats.some(s=>s.id===id&&s.bot)}/></span><strong>{n}</strong></div>):<p>Scores appear after the first hand.</p>}</div><div className="panel"><h3>Active decrees</h3>{game.activeDecrees.length?game.activeDecrees.map(d=><div className="pa-decree" key={d.key}>{PA_DECREE_NAMES[d.key]} {d.value??''}{d.expiresBefore!==undefined?<small>expires before hand {d.expiresBefore}</small>:null}</div>):<p>No decrees in effect.</p>}</div></aside></div>}
   {settingsOpen&&onCloseSettings&&<div className="modal-backdrop" onClick={onCloseSettings}><div className="modal panel pa-host-settings" role="dialog" aria-modal="true" aria-label="President / Asshole settings" onClick={e=>e.stopPropagation()}>
    <div className="modal-head"><h2>Settings</h2><button className="btn btn-small" onClick={onCloseSettings}>Close</button></div>
    <h3>Audio</h3>
@@ -256,7 +262,7 @@ export function PresidentAsshole({view,now,offset,onAction,settingsOpen=false,on
     <button type="button" className="btn btn-small pa-sound-toggle" onClick={sounds.toggle} aria-label="Toggle sound effects" aria-pressed={sounds.enabled}>{sounds.enabled?'🔊 Effects on':'🔇 Effects off'}</button>
     <label className="pa-audio-volume">Sound effects volume <span>{Math.round(sounds.volume*100)}%</span><input type="range" aria-label="Sound effects volume" min="0" max="1" step="0.05" value={sounds.volume} onChange={e=>sounds.setVolume(Number(e.target.value))}/></label>
    </div></details>
-  {game.stage==='finale'&&<div className="panel pa-message pa-finale-phone"><div className="section-kicker">FINAL RANKINGS</div><h2>{game.finaleIsGameOver?'GAME OVER!':'ROUND OVER!'}</h2><p>Watch the host screen for the ranking reveal.</p>{now-offset>=paFinaleRevealEndsAt(game.finaleStartedAt??now-offset,game.handRanks.length)&&<p className="pa-finale-phone-countdown">Stats in <strong>{formatLeft(game.stageEndsAt,now,offset)}</strong></p>}</div>}
+  {game.stage==='finale'&&<div className="panel pa-message pa-finale-phone"><div className="section-kicker">FINAL RANKINGS</div><h2>{waitingForRoundReveal?'PILE CLEARED!':game.finaleIsGameOver?'GAME OVER!':'ROUND OVER!'}</h2><p>{waitingForRoundReveal?'The table is clearing before the rankings.':'Watch the host screen for the ranking reveal.'}</p>{now-offset>=paFinaleRevealEndsAt(game.finaleStartedAt??now-offset,game.handRanks.length)&&<p className="pa-finale-phone-countdown">Stats in <strong>{formatLeft(game.stageEndsAt,now,offset)}</strong></p>}</div>}
   {game.stage==='ended'&&<div className="panel pa-message"><h2>Game ended</h2>{game.handRanks.length>0?<div className="pa-ready-results"><HandResults game={game} asshole={s.mode==='asshole'} viewerId={view.me.id}/><PhoneHandOverlays social={socialPhoneOverlay} drink={drinkOverlay} mode={s.mode}/></div>:<p>Final leaderboard is on the host presentation.</p>}</div>}
   {view.status==='setup'&&<div className="panel pa-message"><h2>Host is setting up the room</h2><p>You can ready up once the lobby is open.</p></div>}
   {view.status!=='setup'&&game.stage==='ready'&&<div className="panel pa-message"><div className="section-kicker">{game.handNumber?`HAND ${game.handNumber} COMPLETE`:'WELCOME TO THE TABLE'}</div>{game.handRanks.length>0&&<div className="pa-ready-results"><HandResults game={game} asshole={s.mode==='asshole'} viewerId={view.me.id}/><PhoneHandOverlays social={socialPhoneOverlay} drink={drinkOverlay} mode={s.mode}/></div>}<h2 className="pa-ready-question">{game.handNumber?'Ready for another hand?':'Ready to play?'}</h2><button className={'btn btn-full '+(game.myReady?'':'btn-primary')} onClick={()=>void onAction('president:ready',{ready:!game.myReady})}>{game.myReady?'✓ Ready (tap to cancel)':'Ready up'}</button><p className="helper">All human players must be ready. Bots ready up automatically. At least four combined seats (including one human) are needed.</p>{view.me.primary&&game.seats.filter(p=>p.online).length<4&&game.handNumber>0&&<button className="btn btn-full" onClick={()=>void onAction('president:end')}>End game</button>}</div>}
@@ -267,7 +273,7 @@ export function PresidentAsshole({view,now,offset,onAction,settingsOpen=false,on
     {!game.myFinished&&(!passOnly||!game.canPlay)&&<button className="btn btn-primary" disabled={blocked||!playButton.enabled||!canSubmit} onClick={()=>void choose(playButton.social)}>{playButton.label} {selections.length?`(${selections.length})`:''}</button>}
     {game.canPlay&&!game.myFinished&&<button className="btn" disabled={blocked} onClick={()=>void onAction('president:pass')}>Pass</button>}
    </div></div>}
-  {game.stage==='decree'&&<div className="panel pa-message"><div className="section-kicker">PRESIDENTIAL DECREE</div><h2>{game.isPresident?'Your Presidential decision':'The President is deciding'}</h2>{game.isPresident?<><p>Choose a decree to enact or repeal, or skip the opportunity.</p>{game.activeDecrees.some(d=>d.key==='democracy')?<><p className="helper">Democracy: nominate two or three eligible changes for a vote. A sole eligible proposal is enacted directly.</p><div className="pa-decree-list">{options.map(a=><label className="pa-option" key={optionKey(a)}><input type="checkbox" disabled={!nominees.includes(optionKey(a))&&nominees.length>=3} checked={nominees.includes(optionKey(a))} onChange={e=>setNominees(old=>e.target.checked?[...old,optionKey(a)]:old.filter(x=>x!==optionKey(a)))}/>{actionLabel(a)}</label>)}</div><button className="btn btn-primary btn-full" disabled={nominees.length<(options.length===1?1:2)} onClick={()=>void onAction('president:decree',{nominees:nominees.map(x=>JSON.parse(x) as PADecreeAction)})}>Propose {nominees.length} change{nominees.length===1?'':'s'}</button></>:<div className="pa-decree-list">{options.map(a=><button className="choice-card" key={optionKey(a)} onClick={()=>void onAction('president:decree',{action:a})}>{actionLabel(a)}</button>)}</div>}<button className="btn btn-full" onClick={()=>void onAction('president:decree',{})}>Skip decree</button></>:<p>Waiting for the President.</p>}<p className="helper">{formatLeft(game.stageEndsAt,now,offset)} remaining</p></div>}
+  {game.stage==='decree'&&<div className="panel pa-message"><div className="section-kicker">PRESIDENTIAL DECREE</div><h2>{game.isPresident?'Your Presidential decision':'The President is deciding'}</h2>{game.isPresident?<><p>Choose a decree to enact or repeal, or skip the opportunity.</p>{game.activeDecrees.some(d=>d.key==='democracy')?<><p className="helper">Democracy: select two or three eligible changes, then propose them for a vote. A sole eligible proposal is enacted directly.</p><div className="pa-decree-list">{options.map(a=>{const key=optionKey(a),checked=nominees.includes(key);return <div key={key} className={'pa-decree-option'+(checked?' is-selected':'')}><label className="pa-option pa-decree-nominee"><input type="checkbox" disabled={!checked&&nominees.length>=3} checked={checked} onChange={e=>setNominees(old=>e.target.checked?[...old,key]:old.filter(x=>x!==key))}/><span>{actionLabel(a)}</span></label>{checked&&<p className="pa-decree-explanation">{decreeActionDescription(a,s,game.activeDecrees.find(d=>d.key===a.key)?.value)}</p>}</div>;})}</div><button className="btn btn-primary btn-full" disabled={nominees.length<(options.length===1?1:2)} onClick={()=>void onAction('president:decree',{nominees:nominees.map(x=>JSON.parse(x) as PADecreeAction)})}>Propose {nominees.length} change{nominees.length===1?'':'s'}</button></>:<><div className="pa-decree-list" role="group" aria-label="Choose a Presidential Decree">{options.map(a=>{const key=optionKey(a),expanded=selectedDecree===key;return <div key={key} className={'pa-decree-option'+(expanded?' is-selected':'')}><button type="button" className="pa-decree-select" aria-pressed={expanded} aria-expanded={expanded} onClick={()=>setSelectedDecree(old=>old===key?undefined:key)}><span>{actionLabel(a)}</span><span className="pa-decree-chevron" aria-hidden="true">{expanded?'▴':'▾'}</span></button>{expanded&&<p className="pa-decree-explanation">{decreeActionDescription(a,s,game.activeDecrees.find(d=>d.key===a.key)?.value)}</p>}</div>;})}</div><button type="button" className="btn btn-primary btn-full pa-decree-submit" disabled={!selectedAction} onClick={()=>selectedAction&&void onAction('president:decree',{action:selectedAction})}>{selectedAction?.kind==='repeal'?'Repeal':'Enact'}</button></>}<button className="btn btn-full" onClick={()=>void onAction('president:decree',{})}>Skip decree</button></>:<p>Waiting for the President.</p>}<p className="helper">{formatLeft(game.stageEndsAt,now,offset)} remaining</p></div>}
   {game.stage==='vote'&&vote&&<div className="panel pa-message"><div className="section-kicker">DEMOCRACY</div><h2>{vote.tieIndices?.length?'President breaks the tie':'Vote on a decree'}</h2><p className="helper">{vote.votesCast} votes submitted · {formatLeft(game.stageEndsAt,now,offset)} remaining</p>{vote.proposals.map((a,i)=><button className="choice-card" key={i} disabled={vote.tieIndices?(!game.isPresident||!vote.tieIndices.includes(i)):vote.myVote!==undefined} onClick={()=>void onAction('president:vote',{index:i})}>{actionLabel(a)}{vote.myVote===i?' ✓':''}</button>)}</div>}
  </section>;
 }

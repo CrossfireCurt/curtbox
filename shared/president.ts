@@ -18,6 +18,7 @@ export function completesFourOfKind(pile:readonly PACard[],cards:readonly PACard
 }
 export type PAStage = 'ready'|'exchange'|'play'|'decree'|'vote'|'finale'|'ended';
 /** All clients share one server-time finale: opening, ascending reveals, then 10s to results. */
+export const PA_CLEAR_PREVIEW_MS=2600;
 export const PA_FINALE_INTRO_MS=1800;
 export const PA_FINALE_RANK_MS=800;
 export const PA_FINALE_HOLD_MS=10000;

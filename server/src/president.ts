@@ -2,7 +2,7 @@
  * persisted atomically with the room by server/index.ts. */
 import {randomInt} from 'node:crypto';
 import type {Participant,RoomState} from '../../shared/types.js';
-import {PA_DEFAULT_SETTINGS,PA_DECREE_NAMES,PA_FINALE_HOLD_MS,paFinaleRevealEndsAt,topRankRun,completesFourOfKind} from '../../shared/president.js';
+import {PA_DEFAULT_SETTINGS,PA_DECREE_NAMES,PA_CLEAR_PREVIEW_MS,PA_FINALE_HOLD_MS,paFinaleRevealEndsAt,topRankRun,completesFourOfKind} from '../../shared/president.js';
 import type {PACard,PADecreeAction,PADecreeKey,PAExchange,PASettings,PAState,PAPublic,PARank,PAPilePlay,PAPlayerStats} from '../../shared/president.js';
 
 const RANKS=['3','4','5','6','7','8','9','10','J','Q','K','A','2'];
@@ -192,11 +192,14 @@ function endHand(r:RoomState,now:number){
  // Keep the next phase pending so Ready cannot start another hand early,
  // and a Presidential Decree doesn't steal the screen before rankings appear.
  const decreeDue=Boolean(winner&&g.streaks[winner]>=r.paSettings!.consecutiveForDecree);
- g.stage='finale';g.finaleStartedAt=now;
+ g.stage='finale';
+ // Finish showing the archived final pile/clear animation before starting the
+ // Round Over ranking reveal. This never delays rule resolution or awards.
+ g.finaleStartedAt=now+(g.lastClear?.at===now?PA_CLEAR_PREVIEW_MS:0);
  g.finaleNextStage=decreeDue?'decree':'ready';
  g.pendingPresident=decreeDue?winner:undefined;
  g.decreeActionsRemaining=decreeDue?1:0;
- g.stageEndsAt=paFinaleRevealEndsAt(now,ranks.length)+PA_FINALE_HOLD_MS;
+ g.stageEndsAt=paFinaleRevealEndsAt(g.finaleStartedAt,ranks.length)+PA_FINALE_HOLD_MS;
  return true;
 }
 function setReady(r:RoomState){const g=r.pa!;g.stage='ready';g.ready=[];g.stageEndsAt=undefined;g.finaleNextStage=undefined;g.decreeActionsRemaining=0;g.pendingPresident=undefined;g.vote=undefined;g.exchange=[];}

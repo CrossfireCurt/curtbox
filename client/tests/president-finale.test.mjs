@@ -29,13 +29,14 @@ test('reveals final ranks from last place to President, synchronized to the serv
  assert.match(ui,/className="pa-finale-screen"/);
  assert.match(ui,/game\.finaleIsGameOver\?'GAME OVER!':'ROUND OVER!'/);
  assert.match(ui,/aria-label=\{game\.finaleIsGameOver\?"Game over finale":"Round over finale"\}/);
- assert.match(ui,/<h2>\{game\.finaleIsGameOver\?'GAME OVER!':'ROUND OVER!'\}<\/h2>/);
+ assert.match(ui,/<h2>\{waitingForRoundReveal\?'PILE CLEARED!':game\.finaleIsGameOver\?'GAME OVER!':'ROUND OVER!'\}<\/h2>/);
+ assert.match(ui,/game\.stage==='finale'&&!waitingForRoundReveal\?<RankingsFinale/);
 });
 
 test('final reveal shows remaining time only after ranking animations finish',()=>{
  assert.match(ui,/serverNow>=paFinaleRevealEndsAt\(start,ranks\.length\)/);
  assert.match(ui,/revealDone\?<span>Stats in <strong>/);
- assert.match(ui,/game\.stage==='finale'\?<RankingsFinale/);
+ assert.match(ui,/game\.stage==='finale'&&!waitingForRoundReveal\?<RankingsFinale/);
  assert.match(ui,/game\.stage==='finale'&&<div className="panel pa-message pa-finale-phone"/);
  assert.match(css,/@keyframes pa-finale-rank-enter/);
  assert.match(css,/@keyframes pa-finale-champion-enter/);

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {createPA,configurePA,botDelayPA,botDuePA,repairPAController,readyPA,playPA,passPA,exchangePA,decreePA,votePA,advancePA,departPA,publicPA,endPA} from '../src/president.js';
 import type {RoomState,Participant} from '../../shared/types.js';
 import {createParticipant} from '../src/core.js';
+import {PA_CLEAR_PREVIEW_MS} from '../../shared/president.js';
 
 function fixture(){
  const r={code:'TEST',gameId:'president-asshole',status:'lobby',participants:[],settings:{rating:'family',pace:'normal',finale:'showdown'},createdAt:0,updatedAt:0,creatorId:'host',matchHistory:[],reactionLastAt:{},questionHistory:[]} as unknown as RoomState;
@@ -135,11 +136,11 @@ test('rank completion awards exactly one presidency and scores streaks',()=>{
  g.turn='p3';g.pile=[];g.lastClear={by:'p3',cards:[],reason:'forced',at:1000,serial:0};
  playPA(r,'p3',['9S'],2000);
  assert.equal(g.stage,'finale');assert.deepEqual(g.handRanks.map(x=>x.id),['p1','p2','p3','p4']);
- assert.equal(g.finaleStartedAt,2000);
+ assert.equal(g.finaleStartedAt,2000+PA_CLEAR_PREVIEW_MS);
  assert.equal(g.finaleNextStage,'ready');
  assert.equal(publicPA(r,{id:'host',role:'host'} as Participant)?.finaleIsGameOver,false);
  assert.equal(publicPA(r,r.participants[0])?.finaleIsGameOver,false);
- assert.equal(g.stageEndsAt,2000+1800+4*800+10000);
+ assert.equal(g.stageEndsAt,2000+PA_CLEAR_PREVIEW_MS+1800+4*800+10000);
  assert.equal(g.presidencies['p1'],1);assert.equal(g.streaks['p1'],1);
  assert.throws(()=>readyPA(r,'p1',true,2001),/cannot ready up/i);
  advancePA(r,g.stageEndsAt!-1);assert.equal(g.stage,'finale');
@@ -841,7 +842,7 @@ test('every completed hand runs one finale and later hands get a fresh reveal ti
  g.lastClear={by:'p1',cards:[],reason:'fixture',at:0,serial:0};
  playPA(r,'p4',['8D'],2000);
  assert.equal(g.stage,'finale');
- assert.equal(g.finaleStartedAt,2000);
+ assert.equal(g.finaleStartedAt,2000+PA_CLEAR_PREVIEW_MS);
  const firstEnd=g.stageEndsAt!;
  advancePA(r,firstEnd);
  assert.equal(g.stage,'ready');
@@ -855,6 +856,43 @@ test('every completed hand runs one finale and later hands get a fresh reveal ti
  g.lastClear={by:'p1',cards:[],reason:'fixture',at:0,serial:0};
  playPA(r,'p4',['8D'],firstEnd+250);
  assert.equal(g.stage,'finale');
- assert.equal(g.finaleStartedAt,firstEnd+250);
+ assert.equal(g.finaleStartedAt,firstEnd+250+PA_CLEAR_PREVIEW_MS);
  assert.ok(g.stageEndsAt!>firstEnd);
+});
+
+test('playing a 2 archives the actual 2 and the prior pile for a visible CLEARED! preview',()=>{
+ const r=fixture(),g=r.pa!;
+ for(let i=1;i<=4;i++)readyPA(r,`p${i}`,true,1000);
+ g.turn='p1';g.pile=['9C'];g.pileOwner='p2';g.pileRank=6;
+ g.lastPlay={player:'p2',rank:6,count:1,cards:['9C'],serial:100};
+ g.pilePlays=[{by:'p2',cards:['9C'],serial:100}];
+ g.hands.p1=['2D','JC'];
+ playPA(r,'p1',['2D'],2000);
+ assert.equal(g.stage,'play','the existing clear rules still apply immediately');
+ assert.deepEqual(g.pile,[]);
+ assert.deepEqual(g.lastClear?.cards,['9C','2D']);
+ assert.equal(g.lastClear?.reason,'Special clear');
+ assert.equal(g.lastClear?.at,2000);
+ const history=g.pileHistory?.at(-1);
+ assert.deepEqual(history?.plays.at(-1)?.cards,['2D']);
+ assert.deepEqual(publicPA(r,{id:'host',role:'host'} as Participant)?.lastClear?.cards,['9C','2D']);
+ assert.equal(publicPA(r,r.participants[0])?.lastClear,undefined,'pile snapshots stay private to presenter');
+});
+
+test('a last-card 2 is visible before the round ranking reveal starts',()=>{
+ const r=fixture(),g=r.pa!;
+ for(let i=1;i<=4;i++)readyPA(r,`p${i}`,true,1000);
+ g.finished=['p1','p2','p3'];
+ g.turn='p4';g.hands.p4=['2S'];g.pile=[];g.pilePlays=[];
+ g.lastClear={by:'p1',cards:[],reason:'fixture',at:0,serial:0};
+ playPA(r,'p4',['2S'],2000);
+ assert.equal(g.stage,'finale');
+ assert.deepEqual(g.lastClear?.cards,['2S']);
+ assert.equal(g.finaleStartedAt,2000+PA_CLEAR_PREVIEW_MS);
+ assert.equal(g.stageEndsAt,2000+PA_CLEAR_PREVIEW_MS+1800+4*800+10000);
+ const lastSnapshot=publicPA(r,{id:'host',role:'host'} as Participant)!;
+ assert.deepEqual(lastSnapshot.lastClear?.cards,['2S']);
+ assert.equal(lastSnapshot.finaleStartedAt,g.finaleStartedAt);
+ advancePA(r,2000+PA_CLEAR_PREVIEW_MS-1);
+ assert.equal(g.stage,'finale','the preview does not prematurely finish the round');
 });
