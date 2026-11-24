@@ -163,7 +163,7 @@ export function PresidentAsshole({view,now,offset,onAction,settingsOpen=false,on
  // The server clears immediately for rule correctness. On the presenter,
  // rehydrate the archived pile for 2.6 seconds so the final play (including
  // a 2) stays visible while CLEARED! animates over the cards.
- const clearPreview=Boolean(host&&game.lastClear&&isPresidentVisualEventActive(game.lastClear.at,now,offset,2600));
+ const clearPreview=Boolean(host&&game.lastClear&&isPresidentVisualEventActive(game.lastClear.at,now,offset,PA_CLEAR_PREVIEW_MS));
  const socialPreview=Boolean(clearPreview&&game.lastClear?.reason==='Social');
  const previewCards=clearPreview&&game.lastClear?game.lastClear.cards:undefined;
  const previewPlays=clearPreview&&game.lastClear?game.pileHistory?.find(p=>p.serial===game.lastClear?.serial)?.plays:undefined;
