@@ -1,5 +1,5 @@
 /** D-pad focus navigation used only inside the native Curtbox Android TV WebView. */
-const SELECTOR='button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+const SELECTOR='button:not([disabled]), summary, a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 type Direction='ArrowUp'|'ArrowDown'|'ArrowLeft'|'ArrowRight';
 
 function candidates():HTMLElement[]{
