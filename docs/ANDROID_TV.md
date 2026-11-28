@@ -26,13 +26,13 @@ Version tags (e.g., `v0.1.1`) run the existing Curtbox release pipeline, which n
 
 ## Controls
 
-- D-pad Up/Down/Left/Right: move focus between Curtbox host controls. The current element has a large gold outline.
+- D-pad Left/Right/Up/Down: move focus between Curtbox host controls. The focused element has a gold outline.
+- **D-pad Up/Down when no other focusable control is in that direction:** scroll the TV page (or an open settings dialog). This lets the host view the entire table and pile history without a touchscreen.
 - Remote OK/Select: activate the focused game, button or form control.
 - TV keyboard: edit the server URL on the native setup screen.
-- **Server** button in top toolbar: enter a different server URL.
-- **Reload** button: reload Curtbox, preserving browser storage by origin.
-- Remote Back: close an open Curtbox modal where supported; otherwise choose Continue / Change server / Exit.
-- Remote Menu button (if present): return to server setup.
+- **No persistent native toolbar:** the TV presentation fills the WebView; the room code and game controls remain in Curtbox's web header.
+- **Back:** close an open Curtbox modal if present, otherwise open the native **Continue hosting / Reload presentation / Change server / Exit Curtbox TV** menu.
+- **Menu** button (if present): open the same native menu, including Reload and Change server.
 
 ## Development
 
@@ -54,7 +54,7 @@ The standalone GitHub Android workflow also builds and uploads an APK and SHA256
 
 - Verify the actual APK on a Google TV/Android TV emulator **and at least one Google TV or Fire TV device** before closing [issue #1](https://github.com/CrossfireCurt/curtbox/issues/1).
 - Test remote navigation through both game creation flows, text fields and dropdowns, entering a host room, QR display, speaker/music controls, reconnects, slow network and TV sleep/wake.
-- Some Fire TV versions may have different WebView support, remote layouts, or URL input keyboards. Fire TV support is a compatibility target, not a hardware-tested guarantee.
+- Some Fire TV versions may have different WebView support, remote layouts, or URL input keyboards. Fire OS 7 on a Fire TV Cube 2nd Generation is a target for the fullscreen 720p-friendly layout; physical-device verification is still required. Fire TV support is a compatibility target, not a hardware-tested guarantee.
 - No offline hosting; the configured Curtbox server must stay online.
 - Only the Host interface runs on TV. To play personally, use a separate Player session/device.
 - Server connections over HTTP should be confined to trusted LANs. The app deliberately permits cleartext for that use case.
