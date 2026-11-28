@@ -14,7 +14,7 @@ test('the Fire TV native presentation occupies the entire screen, with native ac
  assert.doesNotMatch(native,/button\("Reload"\)|button\("Server"\)/);
  assert.match(native,/root\.addView\(web,new LinearLayout\.LayoutParams\(-1,-1\)\)/);
  assert.match(native,/Continue hosting","Reload presentation","Change server","Exit Curtbox TV/);
- assert.match(native,/if\(keyCode == KeyEvent\.KEYCODE_MENU\) \{ exitMenu\(\); return true; \}/);
+ assert.match(native,/if\s*\(keyCode == KeyEvent\.KEYCODE_MENU\) \{ exitMenu\(\); return true; \}/);
  assert.match(native,/private void confirmChangeServer\(\)/);
 });
 
