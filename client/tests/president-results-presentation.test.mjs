@@ -32,12 +32,18 @@ test('presenter removes large top headings but preserves small hand and ready co
  assert.match(ui,/className="pa-stage-head"/);
  assert.match(ui,/HAND \{game\.handNumber\} COMPLETE/);
 });
-test('two latest cleared piles are horizontal and ordered oldest left / newest right',()=>{
- assert.match(ui,/const clearedHistory=\(game\.pileHistory\?\?\[\]\)\.slice\(-2\)/);
+test('Last Pile is in the right sidebar and displays only the most recent clear',()=>{
+ assert.match(ui,/const lastPile=game\.pileHistory\?\.at\(-1\)/);
+ assert.doesNotMatch(ui,/const clearedHistory=/);
  const table=ui.indexOf('className="pa-table-area"');
- const history=ui.indexOf('className="panel pa-pile-history"');
  const aside=ui.indexOf('className="pa-aside"');
- assert.ok(table>=0&&history>table&&aside>history);
- assert.match(css,/\.pa-table-area \.pa-history-list\{display:grid;grid-template-columns:repeat\(2/);
- assert.match(ui,/game\.names\[entry\.by\].*cleared/);
+ const history=ui.indexOf('className="panel pa-pile-history"');
+ assert.ok(table>=0&&aside>table&&history>aside);
+ assert.match(ui,/<h3>Last Pile<\/h3>/);
+ assert.match(ui,/lastPile\?<div className="pa-last-pile" key=\{lastPile\.serial\}/);
+ assert.match(ui,/game\.names\[lastPile\.by\].*cleared/);
+ assert.match(ui,/lastPile\.cards\.map/);
+ assert.match(ui,/No piles cleared yet/);
+ assert.match(css,/\.pa-aside \.pa-last-pile \.pa-history-cards\{display:flex;flex-wrap:wrap/);
+ assert.match(css,/\.tv-mode \.pa-aside \.pa-last-pile \.pa-history-card/);
 });
