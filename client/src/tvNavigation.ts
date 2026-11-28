@@ -12,10 +12,15 @@ function candidates():HTMLElement[]{
 function center(el:HTMLElement){
  const rect=el.getBoundingClientRect();return {x:rect.left+rect.width/2,y:rect.top+rect.height/2};
 }
-function move(direction:Direction){
- const all=candidates();if(!all.length)return;
+/**
+ * Navigate between actual controls when one is in the requested direction.
+ * On a presentation, much of the TV display has no controls (only the table).
+ * Return false so a D-pad Up/Down can instead scroll the document.
+ */
+function move(direction:Direction):boolean{
+ const all=candidates();if(!all.length)return false;
  const active=document.activeElement as HTMLElement|null;
- if(!active||!all.includes(active)){all[0].focus();return;}
+ if(!active||!all.includes(active)){all[0].focus();return true;}
  const origin=center(active),horizontal=direction==='ArrowRight'||direction==='ArrowLeft';
  const sign=direction==='ArrowRight'||direction==='ArrowDown'?1:-1;
  let best:HTMLElement|undefined,score=Infinity;
@@ -27,8 +32,22 @@ function move(direction:Direction){
    const next=main+2.5*cross;
    if(next<score){score=next;best=target;}
  }
- best?.focus();best?.scrollIntoView({block:'nearest',inline:'nearest',behavior:'auto'});
+ if(!best)return false;
+ best.focus();
+ best.scrollIntoView({block:'nearest',inline:'nearest',behavior:'auto'});
+ return true;
 }
+/** A focused toolbar button must not trap users above the un-focusable table. */
+function scrollPresentation(direction:'ArrowUp'|'ArrowDown'){
+ const dialog=document.querySelector<HTMLElement>('[role="dialog"]');
+ const scroller=(dialog??document.scrollingElement) as HTMLElement|null;
+ if(!scroller)return;
+ const limit=Math.max(0,scroller.scrollHeight-scroller.clientHeight);
+ const step=Math.max(130,Math.round(window.innerHeight*.65));
+ const delta=direction==='ArrowDown'?step:-step;
+ scroller.scrollTop=Math.max(0,Math.min(limit,scroller.scrollTop+delta));
+}
+
 function closeModal():boolean{
  const modal=document.querySelector<HTMLElement>('[role="dialog"]');
  const close=modal&&[...modal.querySelectorAll<HTMLButtonElement>('button')]
@@ -46,7 +65,9 @@ export function installTvNavigation():()=>void{
    // Left/right remain available for native editing and range sliders.
    if(active&&['INPUT','TEXTAREA','SELECT'].includes(active.tagName)
      &&(event.key==='ArrowLeft'||event.key==='ArrowRight'))return;
-   event.preventDefault();move(event.key as Direction);
+   event.preventDefault();
+   const direction=event.key as Direction;
+   if(!move(direction)&&(direction==='ArrowDown'||direction==='ArrowUp'))scrollPresentation(direction);
  };
  document.addEventListener('keydown',keydown,true);
  const focusFirst=()=>{

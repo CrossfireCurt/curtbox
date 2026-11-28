@@ -491,3 +491,27 @@
 .pa-decree-nominee input{flex:0 0 auto;accent-color:#e9c878;width:20px;height:20px}
 .pa-decree-submit{margin:8px 0 10px}
 @media(prefers-reduced-motion:reduce){.pa-cleared-pile-overlay{animation:none}.pa-cleared-pile-overlay.after-social{animation:none}}
+
+
+/* TV WebView: a 720p Fire TV has no touch scroll and very little height.
+   Give the card table priority, keep secondary stats in a slim column, and
+   scale the ring to the actual viewport rather than imposing a 690px minimum.
+   These overrides do not affect desktop browser or player phone views. */
+.tv-mode .pa-stage{max-width:none;padding:8px 15px 24px}
+.tv-mode .pa-stage-head{min-height:28px;margin:0 0 7px}
+.tv-mode .pa-stage-columns{grid-template-columns:minmax(0,1fr) 175px;gap:12px}
+.tv-mode .pa-table{min-height:0;padding:8px 11px;border-width:6px;border-radius:27px;gap:8px}
+.tv-mode .pa-table-ring{height:clamp(420px,calc(100vh - 195px),740px)}
+.tv-mode .pa-seat{width:clamp(105px,11.5vw,150px);max-width:24%;padding:6px}
+.tv-mode .pa-seat .pa-seat-player-name{font-size:clamp(.9rem,1.25vw,1.3rem)}
+.tv-mode .pa-aside{display:flex;flex-direction:column;gap:10px;min-width:0}
+.tv-mode .pa-aside .panel{padding:11px 10px;min-width:0;overflow-wrap:anywhere}
+.tv-mode .pa-aside h3{font-size:1rem;line-height:1.2;margin-bottom:8px}
+.tv-mode .pa-aside .pa-score{gap:4px;font-size:.86rem}
+.tv-mode .pa-aside .pa-decree{font-size:.8rem}
+@media(max-width:750px){
+ .tv-mode .pa-stage-columns{grid-template-columns:minmax(0,1fr) 135px;gap:8px}
+ .tv-mode .pa-stage{padding:6px 8px 20px}
+ .tv-mode .pa-table-ring{height:clamp(395px,calc(100vh - 185px),650px)}
+ .tv-mode .pa-aside .panel{padding:8px}
+}
