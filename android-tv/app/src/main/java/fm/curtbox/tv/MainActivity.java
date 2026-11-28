@@ -7,7 +7,6 @@ import android.content.res.ColorStateList;
 import android.content.pm.ApplicationInfo;
 import android.graphics.Color;
 import android.os.Bundle;
-import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.WindowManager;
@@ -38,7 +37,6 @@ public final class MainActivity extends Activity {
     private SharedPreferences prefs;
     private LinearLayout root;
     private WebView web;
-    private TextView status;
     private String serverOrigin;
 
     @Override public void onCreate(Bundle state) {
@@ -141,26 +139,9 @@ public final class MainActivity extends Activity {
     }
     private void showPresenter(String origin) {
         reset(); serverOrigin = origin;
-        LinearLayout toolbar = new LinearLayout(this);
-        toolbar.setGravity(Gravity.CENTER_VERTICAL);
-        toolbar.setBackgroundColor(PANEL);
-        toolbar.setPadding(dp(15),dp(4),dp(15),dp(4));
-        root.addView(toolbar,new LinearLayout.LayoutParams(-1,dp(61)));
-        status = text("Curtbox TV  ·  "+origin,16,FG);
-        status.setSingleLine(true);
-        status.setEllipsize(android.text.TextUtils.TruncateAt.END);
-        toolbar.addView(status,new LinearLayout.LayoutParams(0,-2,1f));
-        Button reload = button("Reload");
-        toolbar.addView(reload,new LinearLayout.LayoutParams(dp(122),dp(51)));
-        Button change = button("Server");
-        LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(dp(122),dp(51));
-        cp.leftMargin = dp(12);
-        toolbar.addView(change,cp);
-        change.setOnClickListener(v -> new AlertDialog.Builder(this)
-                .setTitle("Change Curtbox server?")
-                .setMessage("This TV will leave the current presentation. Players and rooms on that server remain unchanged.")
-                .setNegativeButton("Cancel",null)
-                .setPositiveButton("Change server",(d,w)->showSetup()).show());
+        // Give the hosted presentation the entire screen. The native URL,
+        // Reload and Server toolbar used too much of a 720p TV viewport.
+        // Both actions remain available in the remote's Back/Menu dialog.
         web = new WebView(this);
         web.setBackgroundColor(BG);
         web.setFocusable(true);
@@ -183,22 +164,35 @@ public final class MainActivity extends Activity {
                 return true;
             }
             @Override public void onPageFinished(WebView view,String url) {
-                status.setText("Curtbox TV  ·  "+origin); view.requestFocus();
+                view.requestFocus();
             }
             @Override public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
-                if (request.isForMainFrame()) status.setText("Connection failed — check network and server");
+                if (request.isForMainFrame()) Toast.makeText(MainActivity.this,
+                        "Curtbox connection failed — check network and server",Toast.LENGTH_LONG).show();
             }
         });
-        root.addView(web,new LinearLayout.LayoutParams(-1,0,1));
-        reload.setOnClickListener(v->web.reload());
+        root.addView(web,new LinearLayout.LayoutParams(-1,-1));
         web.loadUrl(origin+"/");
         web.requestFocus();
     }
 
+    /** The native actions are accessible without a permanently visible toolbar. */
     private void exitMenu() {
         new AlertDialog.Builder(this).setTitle("Curtbox TV")
-                .setItems(new String[]{"Continue hosting","Change server","Exit Curtbox TV"},
-                        (d,which)->{if(which==1)showSetup();else if(which==2)finish();})
+                .setItems(new String[]{"Continue hosting","Reload presentation","Change server","Exit Curtbox TV"},
+                        (d,which)->{
+                            if(which==1&&web!=null)web.reload();
+                            else if(which==2)confirmChangeServer();
+                            else if(which==3)finish();
+                        })
+                .show();
+    }
+    private void confirmChangeServer() {
+        new AlertDialog.Builder(this)
+                .setTitle("Change Curtbox server?")
+                .setMessage("This TV will leave the current presentation. Players and rooms on that server remain unchanged.")
+                .setNegativeButton("Cancel",null)
+                .setPositiveButton("Change server",(d,w)->showSetup())
                 .show();
     }
     @Override public void onBackPressed() {
@@ -208,7 +202,7 @@ public final class MainActivity extends Activity {
         });
     }
     @Override public boolean onKeyDown(int keyCode, KeyEvent event) {
-        if (keyCode == KeyEvent.KEYCODE_MENU) { showSetup(); return true; }
+        if (keyCode == KeyEvent.KEYCODE_MENU) { exitMenu(); return true; }
         return super.onKeyDown(keyCode,event);
     }
     @Override public void onDestroy() {
