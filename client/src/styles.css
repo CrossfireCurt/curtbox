@@ -515,3 +515,63 @@
  .tv-mode .pa-table-ring{height:clamp(395px,calc(100vh - 185px),650px)}
  .tv-mode .pa-aside .panel{padding:8px}
 }
+
+/* Fire TV presenter: exactly one small header row. The game/hand label lives
+   above Presidencies at the right of the table, so it consumes no table height.
+   The 100dvh sizing budget includes the web header, outer spacing, table
+   border, and inset; no part of the play ring should be below the TV viewport. */
+.tv-mode .pa-host-header{height:43px;min-height:43px;padding:0 13px;gap:8px;flex-wrap:nowrap}
+.tv-mode .pa-host-header .room-brand{font-size:.82rem;letter-spacing:.035em;flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.tv-mode .pa-host-header .breadcrumb{display:none}
+.tv-mode .pa-host-header .header-actions{flex-wrap:nowrap;gap:9px}
+.tv-mode .pa-host-header .header-actions>.status{display:none}
+.tv-mode .pa-host-header .header-actions>.btn{display:none}
+.tv-mode .pa-host-header .room-code{font-size:1.12rem;font-weight:900;letter-spacing:.1em;white-space:nowrap}
+.tv-host-menu,.pa-tv-side-status{display:none}
+.tv-mode .tv-host-menu{display:block;position:relative;z-index:45}
+.tv-mode .tv-host-menu>summary{list-style:none;cursor:pointer;background:#233043;border:1px solid #6884a1;border-radius:7px;padding:7px 12px;font-size:.86rem;color:#f3f5f8;font-weight:850;white-space:nowrap}
+.tv-mode .tv-host-menu>summary::-webkit-details-marker{display:none}
+.tv-mode .tv-host-menu[open]>summary{border-color:#ffe4a9}
+.tv-mode .tv-host-menu-options{position:absolute;right:0;top:calc(100% + 5px);width:174px;display:grid;gap:3px;padding:6px;background:#182433;border:1px solid #8296b0;border-radius:9px;box-shadow:0 12px 28px #000b}
+.tv-mode .tv-host-menu-options>button{border:0;border-radius:5px;background:transparent;text-align:left;color:#fff;padding:11px 9px;font-weight:750;cursor:pointer}
+.tv-mode .tv-host-menu-options>button:focus,.tv-mode .tv-host-menu-options>button:hover{background:#3a4862}
+.tv-mode .tv-host-menu-options .tv-host-leave{color:#ffbdba}
+
+.tv-mode .pa-stage{padding:6px 10px 14px}
+.tv-mode .pa-stage-head{display:none}
+.tv-mode .pa-stage-columns{grid-template-columns:minmax(0,1fr) 165px;gap:10px}
+.tv-mode .pa-table{min-height:0;padding:6px;border:5px solid #b2a194;border-radius:24px;gap:0}
+.tv-mode .pa-table-ring{height:calc(100vh - 95px);height:calc(100dvh - 95px);min-height:0;max-height:none}
+.tv-mode .pa-aside{gap:8px}
+.tv-mode .pa-tv-side-status{display:flex;flex-wrap:wrap;align-items:center;gap:3px 7px;padding:6px 7px;color:#e7eef0;line-height:1.15}
+.tv-mode .pa-tv-side-status strong{font-size:.73rem;letter-spacing:.05em;color:#ffdfab}
+.tv-mode .pa-tv-side-status span{font-size:.76rem;font-weight:800;white-space:nowrap}
+.tv-mode .pa-tv-side-status .pa-tv-side-clock{font-variant-numeric:tabular-nums;color:#ffe09b;margin-left:auto}
+.tv-mode .pa-aside .panel{padding:10px 8px;border-radius:9px}
+.tv-mode .pa-aside .panel p{font-size:.77rem;line-height:1.3;margin:0}
+.tv-mode .pa-aside h3{font-size:.9rem;line-height:1.15;margin-bottom:6px}
+.tv-mode .pa-aside .pa-score{padding:5px 0;font-size:.79rem}
+.tv-mode .pa-aside .pa-decree{padding:5px 0;font-size:.73rem}
+
+/* Prior desktop seat dimensions were ~142px tall, too large for a 720p TV
+   when placed on the top and bottom of an elliptical ring. Keep the large
+   player names, but shrink empty space and the stack graphic. */
+.tv-mode .pa-seat{--pa-seat-header-font:clamp(1.08rem,1.6vw,1.38rem);width:clamp(116px,12.5vw,170px);max-width:24%;min-height:94px;padding:4px 6px 5px;gap:3px;border-width:2px}
+.tv-mode .pa-seat-header{gap:3px}
+.tv-mode .pa-seat-name-row{gap:3px}
+.tv-mode .pa-seat-card-stack{transform:scale(.68);transform-origin:center top;height:39px}
+.tv-mode .pa-seat .pa-seat-ready{min-height:36px;font-size:.8rem}
+.tv-mode .pa-seat .pa-seat-finished{min-height:42px;padding:0;gap:0}
+.tv-mode .pa-seat .pa-seat-finished .pa-finished-label{font-size:1rem}
+.tv-mode .pa-seat .pa-seat-finished .pa-finished-rank{font-size:1.7rem}
+.tv-mode .pa-table-ring .pa-table-center{width:52%;padding:4px}
+.tv-mode .pa-table-ring .pa-pile{min-height:90px}
+.tv-mode .pa-pile-fan{min-height:90px}
+.tv-mode .pa-pile-empty{min-height:85px}
+@media(max-height:610px){
+ .tv-mode .pa-host-header{height:38px;min-height:38px}
+ .tv-mode .pa-stage{padding:4px 7px 10px}
+ .tv-mode .pa-table-ring{height:calc(100dvh - 80px)}
+ .tv-mode .pa-seat{min-height:80px;gap:2px;padding:3px 5px 4px;--pa-seat-header-font:1.02rem}
+ .tv-mode .pa-seat-card-stack{transform:scale(.58);height:33px}
+}

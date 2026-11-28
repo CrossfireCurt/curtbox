@@ -13,7 +13,8 @@ const server=readFileSync(resolve(root,'server/src/president.ts'),'utf8');
 
 test('the presenter has no duplicate ROOM CODE panel beside the table',()=>{
  assert.doesNotMatch(ui,/<div className="section-kicker">ROOM CODE<\/div>/);
- assert.match(ui,/<aside className="pa-aside"><div className="panel"><h3>Presidencies<\/h3>/);
+ assert.match(ui,/<aside className="pa-aside"><div className="pa-tv-side-status"/);
+ assert.match(ui,/<div className="panel"><h3>Presidencies<\/h3>/);
  assert.match(ui,/const roomCode=view.code/,'the room code remains available in the existing results footer');
 });
 
