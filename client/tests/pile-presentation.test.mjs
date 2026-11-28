@@ -51,10 +51,10 @@ test('older hidden cards never hide latest four-card combination',()=>{
  assert.ok(state.cards.slice(-4).every(c=>c.latest));
 });
 
-test('cleared pile history remains attributed and host-only',()=>{
- assert.match(ui,/PILE HISTORY/);
- assert.match(ui,/game\.names\[entry\.by\].*cleared/);
- assert.match(ui,/entry\.cards\.map/);
+test('Last Pile preserves attribution while full pile history remains host-only',()=>{
+ assert.match(ui,/<h3>Last Pile<\/h3>/);
+ assert.match(ui,/game\.names\[lastPile\.by\].*cleared/);
+ assert.match(ui,/lastPile\.cards\.map/);
  assert.match(engine,/pileHistory=\[\.\.\.\(g\.pileHistory\?\?\[\]\)\.slice\(-7\),record\]/);
  assert.match(engine,/pileHistory:host\?/);
 });
