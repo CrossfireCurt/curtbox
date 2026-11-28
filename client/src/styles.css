@@ -575,3 +575,16 @@
  .tv-mode .pa-seat{min-height:80px;gap:2px;padding:3px 5px 4px;--pa-seat-header-font:1.02rem}
  .tv-mode .pa-seat-card-stack{transform:scale(.58);height:33px}
 }
+
+/* One latest cleared pile in the right sidebar, never beneath the TV table. */
+.pa-aside .pa-pile-history{min-width:0}
+.pa-aside .pa-last-pile{min-width:0;padding:2px 0 0}
+.pa-aside .pa-last-pile>strong,.pa-aside .pa-last-pile>small{display:block;overflow-wrap:anywhere}
+.pa-aside .pa-last-pile>strong{font-size:.9rem;color:#f1dcab;line-height:1.2}
+.pa-aside .pa-last-pile>small{color:#a8b9b4;font-size:.74rem;line-height:1.3;margin:5px 0 7px}
+.pa-aside .pa-last-pile .pa-history-cards{display:flex;flex-wrap:wrap;justify-content:flex-start;gap:3px;max-height:140px;overflow:hidden}
+.pa-aside .pa-last-pile .pa-history-card{min-width:0;padding:3px 4px;font-size:.7rem;white-space:nowrap}
+.tv-mode .pa-aside .pa-last-pile>strong{font-size:.77rem}
+.tv-mode .pa-aside .pa-last-pile>small{font-size:.66rem;margin:3px 0 5px}
+.tv-mode .pa-aside .pa-last-pile .pa-history-cards{max-height:105px}
+.tv-mode .pa-aside .pa-last-pile .pa-history-card{font-size:.65rem;padding:2px 3px}
